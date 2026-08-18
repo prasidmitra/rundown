@@ -1,0 +1,738 @@
+/* Light mode only. Generous font sizes and spacing for easy reading/clicking. */
+
+* { box-sizing: border-box; }
+
+/* Hide scrollbars everywhere (Electron is always Chromium, so this is safe)
+   while keeping scrolling itself fully functional. */
+html {
+  scrollbar-width: none;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  color: #1f2430;
+  background: #f7f8fa;
+  margin: 0;
+}
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 20px 28px;
+  background: #000000;
+  border-bottom: 1px solid #000000;
+}
+
+.nav-clock {
+  justify-self: center;
+  color: #ffffff;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+header h1 {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 22px;
+  margin: 0;
+  color: #ffffff;
+}
+
+.logo-icon {
+  height: 26px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+#settingsBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: end;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+#settingsBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Exactly 2 columns; lists fill left-to-right, top-to-bottom (3rd list
+   lands below the 1st, 4th below the 2nd, and so on). */
+.lists-container {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(420px, 1fr));
+  gap: 24px;
+  padding: 24px;
+  align-items: start;
+}
+
+.list-panel {
+  background: #ffffff;
+  border: 1px solid #e2e5ea;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.list-panel.full-width {
+  grid-column: 1 / -1;
+}
+
+.empty-state {
+  grid-column: 1 / -1;
+  color: #94a3b8;
+  text-align: center;
+  padding: 40px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.list-name-input {
+  font-size: 20px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  padding: 6px 8px;
+  border-radius: 6px;
+  flex: 1;
+  min-width: 120px;
+}
+
+.list-name-input:focus {
+  background: #f1f5f9;
+  outline: none;
+}
+
+.add-item-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.add-item-text {
+  flex: 2 1 200px;
+  font-size: 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+}
+
+.field-dropdown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 16px;
+  font-family: inherit;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #1f2430;
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.field-dropdown::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+.field-dropdown.dropdown-open {
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.25);
+}
+
+.add-item-btn {
+  font-size: 16px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  background: #000000;
+  color: #fff;
+  cursor: pointer;
+}
+
+.add-item-btn:hover {
+  background: #222222;
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.items-table th {
+  text-align: left;
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 4px 6px;
+  border-bottom: 2px solid #e2e5ea;
+}
+
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortable-th:hover {
+  color: #1f2430;
+}
+
+.items-table td {
+  padding: 3px 6px;
+  border-bottom: 1px solid #eef0f3;
+  vertical-align: middle;
+}
+
+/* Fixed column widths so switching sort field or badge label length never
+   shifts the layout — the Item column (no width set) absorbs the rest. */
+.col-num {
+  width: 30px;
+  color: #94a3b8;
+  font-size: 13px;
+  text-align: center;
+}
+
+.col-status { width: 128px; }
+.col-priority { width: 98px; }
+.col-details { width: 42px; }
+.col-delete { width: 38px; }
+
+.item-text-input {
+  width: 100%;
+  font-size: 16px;
+  border: none;
+  background: transparent;
+  padding: 4px 4px;
+  border-radius: 6px;
+  font-family: inherit;
+  vertical-align: middle;
+}
+
+.item-text-input:focus {
+  background: #f8fafc;
+  outline: 1px solid #cbd5e1;
+}
+
+/* Badge-style dropdown triggers (replace native <select> for status/priority) */
+.badge-dropdown {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  line-height: 1.4;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  border: none;
+  border-radius: 999px;
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.badge-dropdown::after {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  margin-left: 6px;
+  opacity: 0.55;
+}
+
+.badge-dropdown.dropdown-open {
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.45);
+}
+
+/* Floating menu opened by a badge-dropdown trigger. Options are sized to
+   their own content (same pill shape as the badge), not stretched rows. */
+.dropdown-menu {
+  position: fixed;
+  background: #ffffff;
+  border: 1px solid #e2e5ea;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  padding: 8px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.dropdown-option {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.dropdown-option:hover {
+  filter: brightness(0.95);
+}
+
+.dropdown-option.active {
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.18);
+}
+
+/* Plain themed variant used by non-colored fields (e.g. add-item Status/Priority) */
+.dropdown-menu.neutral {
+  display: block;
+  align-items: stretch;
+  gap: 0;
+}
+
+.dropdown-menu.neutral .dropdown-option {
+  display: block;
+  width: 100%;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 6px;
+  background: transparent;
+  color: #1f2430;
+}
+
+.dropdown-menu.neutral .dropdown-option:hover {
+  filter: none;
+  background: #f1f5f9;
+}
+
+.dropdown-menu.neutral .dropdown-option.active {
+  background: #eef2f7;
+  box-shadow: none;
+  font-weight: 700;
+}
+
+/* Status colors — shared by badge triggers and dropdown option rows */
+.status-not-started { background: #eceff1; color: #37474f; }
+.status-in-progress { background: #dbeafe; color: #1e40af; }
+.status-blocked      { background: #fef3c7; color: #92400e; }
+.status-completed    { background: #dcfce7; color: #166534; }
+.status-cancelled    { background: #e5e7eb; color: #6b7280; }
+
+/* Priority colors — shared by badge triggers and dropdown option rows */
+.priority-critical { background: #fee2e2; color: #b91c1c; }
+.priority-high     { background: #ffedd5; color: #c2410c; }
+.priority-normal   { background: #e2e8f0; color: #475569; }
+.priority-low      { background: #ecfdf5; color: #15803d; }
+
+.details-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+}
+
+.details-btn:hover {
+  background: #f1f5f9;
+}
+
+.details-btn.has-content {
+  color: #ca8a04;
+}
+
+.delete-btn {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  color: #ef4444;
+  cursor: pointer;
+}
+
+.delete-btn:hover {
+  background: #fee2e2;
+}
+
+.empty-row td {
+  color: #94a3b8;
+  text-align: center;
+  padding: 20px;
+}
+
+.hidden-section {
+  margin-top: 18px;
+}
+
+.hidden-toggle {
+  font-size: 15px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+}
+
+.hidden-table {
+  margin-top: 12px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.25);
+  z-index: 15;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 420px;
+  max-width: 90vw;
+  background: #ffffff;
+  border-left: 1px solid #e2e5ea;
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e2e5ea;
+  gap: 12px;
+}
+
+.drawer-header h2 {
+  font-size: 18px;
+  margin: 0;
+  word-break: break-word;
+}
+
+.modal-close-btn {
+  font-size: 15px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.drawer-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 14px 20px 0;
+}
+
+.toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+}
+
+.toolbar-btn:hover {
+  background: #f1f5f9;
+}
+
+.toolbar-btn.active {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e40af;
+}
+
+.toolbar-divider {
+  width: 1px;
+  align-self: stretch;
+  background: #e2e5ea;
+  margin: 2px 2px;
+}
+
+.drawer-editor {
+  flex: 1;
+  margin: 12px 20px 20px;
+  padding: 14px;
+  font-size: 16px;
+  line-height: 1.6;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-family: inherit;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-y: auto;
+  outline: none;
+}
+
+.drawer-editor:focus {
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.35);
+}
+
+.drawer-editor:empty::before {
+  content: attr(data-placeholder);
+  color: #94a3b8;
+}
+
+.drawer-editor a {
+  color: #2563eb;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.drawer-editor ul {
+  list-style: disc;
+  padding-left: 24px;
+  margin: 4px 0;
+}
+
+.drawer-editor ol {
+  list-style: decimal;
+  padding-left: 24px;
+  margin: 4px 0;
+}
+
+.drawer-editor li {
+  margin: 2px 0;
+}
+
+/* Settings modal (list management: add / delete) */
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 420px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  border-bottom: 1px solid #e2e5ea;
+  gap: 12px;
+}
+
+.modal-header h2 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.settings-list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+  border-bottom: 1px solid #eef0f3;
+  border-radius: 8px;
+}
+
+.settings-list-row.dragging {
+  opacity: 0.4;
+}
+
+.settings-list-row.drag-over {
+  background: #f1f5f9;
+}
+
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  color: #94a3b8;
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.settings-list-name {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.settings-visibility-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.settings-visibility-btn:hover {
+  background: #f1f5f9;
+}
+
+.settings-delete-list-btn {
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #fca5a5;
+  background: #fff;
+  color: #b91c1c;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.settings-delete-list-btn:hover {
+  background: #fee2e2;
+}
+
+.settings-add-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+#settingsNewListName {
+  flex: 1;
+  font-size: 15px;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.settings-add-form button {
+  font-size: 15px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #000;
+  color: #fff;
+  cursor: pointer;
+}
+
+/* Themed confirm/alert dialog (replaces native confirm()/alert()) */
+.confirm-modal {
+  width: 360px;
+}
+
+.confirm-message {
+  font-size: 15px;
+  color: #1f2430;
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.confirm-ok-btn {
+  font-size: 15px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #000;
+  color: #fff;
+  cursor: pointer;
+}
+
+.confirm-ok-btn:hover {
+  background: #222;
+}
+
+.confirm-ok-btn.danger-btn {
+  background: #dc2626;
+}
+
+.confirm-ok-btn.danger-btn:hover {
+  background: #b91c1c;
+}
