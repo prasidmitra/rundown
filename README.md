@@ -12,11 +12,18 @@ in your default browser), and settings for reordering, hiding, or deleting lists
 
 1. Grab the latest build from [Releases](../../releases) — download
    `Rundown-macOS-arm64.zip`.
-2. Unzip it and drag `Rundown.app` to your `Applications` folder.
-3. **First launch only:** right-click (or Control-click) `Rundown.app` and
-   choose **Open**, then confirm. macOS blocks unsigned apps downloaded from
-   the internet by default — this one-time step tells it you trust it.
-   After that, just double-click normally.
+2. Unzip it.
+3. **First launch only:** this app isn't code-signed (that requires a paid
+   Apple Developer account), so macOS will refuse to open it and claim it's
+   "damaged" — it isn't; that's just Gatekeeper blocking unsigned apps
+   downloaded from a browser, and this particular error doesn't offer a
+   right-click-to-open workaround. Clear the download flag first:
+   ```
+   xattr -cr ~/Downloads/Rundown.app
+   ```
+   (adjust the path if you unzipped somewhere else). Then drag `Rundown.app`
+   to your `Applications` folder and open it — from then on it opens normally
+   with a plain double-click.
 
 Your data lives at `~/Library/Application Support/tracker/data.json` — a
 plain JSON file you can open, edit, or back up directly. It's created
