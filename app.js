@@ -21,6 +21,7 @@ const ICON_DETAILS = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none
 const ICON_HIDE = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0112 20c-5 0-9.27-3.11-11-8 .72-2.02 1.99-3.86 3.6-5.32M9.9 4.24A10.94 10.94 0 0112 4c5 0 9.27 3.11 11 8a12.7 12.7 0 01-1.67 3.19"></path><path d="M14.12 14.12a3 3 0 11-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
 const ICON_SHOW = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
 const ICON_DRAG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><circle cx="8" cy="6" r="1.5"></circle><circle cx="8" cy="12" r="1.5"></circle><circle cx="8" cy="18" r="1.5"></circle><circle cx="16" cy="6" r="1.5"></circle><circle cx="16" cy="12" r="1.5"></circle><circle cx="16" cy="18" r="1.5"></circle></svg>';
+const ICON_TRASH = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"></path><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>';
 
 let state = null;
 let saveTimer = null;
@@ -266,7 +267,7 @@ function renderRow(item, num) {
       <td class="col-status"><button type="button" class="badge-dropdown status-${slug(item.status)}" data-kind="status">${STATUS_LABELS[item.status]}</button></td>
       <td class="col-priority"><button type="button" class="badge-dropdown priority-${slug(item.priority)}" data-kind="priority">${PRIORITY_LABELS[item.priority]}</button></td>
       <td class="col-details"><button class="details-btn${item.details ? ' has-content' : ''}" title="View/edit details" aria-label="View or edit details">${ICON_DETAILS}</button></td>
-      <td class="col-delete"><button class="delete-btn" title="Delete item" aria-label="Delete item">✕</button></td>
+      <td class="col-delete"><button class="delete-btn" title="Delete item" aria-label="Delete item">${ICON_TRASH}</button></td>
     </tr>
   `;
 }

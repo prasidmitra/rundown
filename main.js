@@ -2,6 +2,13 @@ const { app, BrowserWindow, dialog, shell } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
+// Display name only (menu bar, About/Hide/Quit items). setName() also
+// shifts Electron's default userData path to match the new name, which
+// would silently orphan existing data - so pin userData explicitly, back
+// to the original folder, right after.
+app.setName('Rundown');
+app.setPath('userData', path.join(app.getPath('appData'), 'tracker'));
+
 // Keep the live data file in the standard per-user app-data folder, outside
 // the app bundle, so it survives rebuilds/reinstalls and stays writable even
 // if the bundle itself is packaged read-only (asar).
@@ -30,11 +37,14 @@ server.on('error', err => {
   app.quit();
 });
 
+const logoPath = path.join(__dirname, 'logo_icon_source.png');
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
     height: 900,
     title: 'Rundown',
+    icon: logoPath,
     webPreferences: {
       contextIsolation: true
     }
@@ -48,6 +58,10 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === 'darwin' && app.dock) {
+    app.dock.setIcon(logoPath); // packaged builds use icon.icns instead; this covers `npm start`
+  }
+
   if (server.listening) {
     createWindow();
   } else {
