@@ -48,6 +48,27 @@ To build your own standalone `.app` (matches what's in Releases):
 npm run package     # outputs dist/Rundown-darwin-arm64/Rundown.app
 ```
 
+### Updating the installed app after a `git pull`
+
+```
+npm run release
+```
+
+This builds the app and replaces `/Applications/Rundown.app` with the new
+build, quitting the running app first if needed. It's the one-command
+workflow for "pull latest, get latest app in Applications" on any Mac.
+
+It also works around a packaging quirk: `electron-packager`'s zip-extraction
+step silently hangs (exits 0, produces nothing) on some newer Node builds
+(seen on Node 26.7.0). `npm run release` tries other `node` binaries it can
+find (e.g. `/usr/local/bin/node`, `/opt/homebrew/bin/node`) until one
+actually produces the app, so it should work regardless of which Node
+version is your machine's default. If you hit this with plain
+`npm run package`, run it with a different `node` binary directly, e.g.:
+```
+/usr/local/bin/node ./node_modules/.bin/electron-packager . Rundown --platform=darwin --arch=arm64 --out=dist --overwrite --icon=icon.icns
+```
+
 ## How it works
 
 - `server.js` — a dependency-free Node HTTP server that serves the UI and
