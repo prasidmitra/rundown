@@ -10,9 +10,14 @@
   <header>
     <h1><img src="logo.png" alt="" class="logo-icon"> Rundown</h1>
     <div id="navClock" class="nav-clock"></div>
-    <button id="settingsBtn" title="Manage lists" aria-label="Manage lists">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005.6 15a1.65 1.65 0 00-1.51-1H4a2 2 0 110-4h.09A1.65 1.65 0 005 8.6a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V2a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 8.6a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
-    </button>
+    <div class="header-actions">
+      <button id="syncBtn" title="Pull latest from cloud" aria-label="Sync">
+        <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"></path></svg>
+      </button>
+      <button id="settingsBtn" title="Manage lists" aria-label="Manage lists">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005.6 15a1.65 1.65 0 00-1.51-1H4a2 2 0 110-4h.09A1.65 1.65 0 005 8.6a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V2a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 8.6a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
+      </button>
+    </div>
   </header>
 
   <main id="listsContainer" class="lists-container"></main>
@@ -83,6 +88,16 @@
         <input id="settingsNewListName" placeholder="New list name…" required>
         <button type="submit">Add list</button>
       </form>
+
+      <hr class="settings-divider">
+
+      <h3 class="settings-section-title">Cloud sync</h3>
+      <p id="syncStatusText" class="settings-hint">Checking…</p>
+      <form id="syncConfigForm" class="settings-add-form">
+        <input id="syncMongoUriInput" type="password" placeholder="mongodb+srv://user:pass@cluster.mongodb.net/rundown" autocomplete="off">
+        <button type="submit">Save</button>
+      </form>
+      <p class="settings-hint">Lists are local-only by default. Click the cloud icon next to a list above to turn sync on for it — from then on, every local save pushes that list to this database automatically. Use the sync button in the header to pull the latest synced lists from the cloud onto this device (local-only lists are never affected).</p>
     </div>
   </div>
 

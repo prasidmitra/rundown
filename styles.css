@@ -57,11 +57,18 @@ header h1 {
   flex-shrink: 0;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: end;
+}
+
+#syncBtn,
 #settingsBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  justify-self: end;
   width: 40px;
   height: 40px;
   border-radius: 8px;
@@ -71,8 +78,18 @@ header h1 {
   cursor: pointer;
 }
 
+#syncBtn:hover,
 #settingsBtn:hover {
   background: rgba(255, 255, 255, 0.12);
+}
+
+#syncBtn.syncing svg {
+  animation: sync-spin 0.9s linear infinite;
+}
+
+@keyframes sync-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* Exactly 2 columns; lists fill left-to-right, top-to-bottom (3rd list
@@ -640,6 +657,7 @@ header h1 {
   font-weight: 600;
 }
 
+.settings-sync-btn,
 .settings-visibility-btn {
   display: inline-flex;
   align-items: center;
@@ -655,6 +673,7 @@ header h1 {
   flex-shrink: 0;
 }
 
+.settings-sync-btn:hover,
 .settings-visibility-btn:hover {
   background: #f1f5f9;
 }
@@ -698,9 +717,41 @@ header h1 {
   cursor: pointer;
 }
 
+.settings-divider {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 24px 0 16px;
+}
+
+.settings-section-title {
+  font-size: 15px;
+  margin: 0 0 6px;
+  color: #1f2430;
+}
+
+.settings-hint {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
+
+#syncMongoUriInput {
+  flex: 1;
+  font-size: 15px;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
 /* Themed confirm/alert dialog (replaces native confirm()/alert()) */
 .confirm-modal {
   width: 360px;
+  /* Must outrank other .modal instances (e.g. settingsModal) since it can
+     be triggered while one is already open (delete-list, alerts from the
+     cloud sync form) — same z-index as .modal would fall back to DOM
+     order, which put it underneath. */
+  z-index: 26;
 }
 
 .confirm-message {

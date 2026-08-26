@@ -1,4 +1,4 @@
-// All client-side logic for the tracker: render, add/edit/delete, sort,
+// All client-side logic for Rundown: render, add/edit/delete, sort,
 // hide/unhide, custom colored dropdowns, the details drawer, list settings,
 // and autosave to the local server.
 
@@ -22,6 +22,8 @@ const ICON_HIDE = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" s
 const ICON_SHOW = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
 const ICON_DRAG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><circle cx="8" cy="6" r="1.5"></circle><circle cx="8" cy="12" r="1.5"></circle><circle cx="8" cy="18" r="1.5"></circle><circle cx="16" cy="6" r="1.5"></circle><circle cx="16" cy="12" r="1.5"></circle><circle cx="16" cy="18" r="1.5"></circle></svg>';
 const ICON_TRASH = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"></path><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>';
+const ICON_CLOUD = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H8a5 5 0 01-1-9.9A6 6 0 0118 8.2 4.5 4.5 0 0117.5 19z"></path></svg>';
+const ICON_CLOUD_OFF = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H8a5 5 0 01-1-9.9A6 6 0 0118 8.2 4.5 4.5 0 0117.5 19z"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
 
 let state = null;
 let saveTimer = null;
@@ -49,6 +51,11 @@ const settingsCloseBtn = document.getElementById('settingsCloseBtn');
 const settingsListsList = document.getElementById('settingsListsList');
 const settingsAddForm = document.getElementById('settingsAddListForm');
 const settingsNewListName = document.getElementById('settingsNewListName');
+
+const syncBtn = document.getElementById('syncBtn');
+const syncStatusText = document.getElementById('syncStatusText');
+const syncConfigForm = document.getElementById('syncConfigForm');
+const syncMongoUriInput = document.getElementById('syncMongoUriInput');
 
 const confirmModal = document.getElementById('confirmModal');
 const confirmMessage = document.getElementById('confirmMessage');
@@ -102,6 +109,8 @@ async function init() {
 
   settingsListsList.addEventListener('click', onSettingsListsClick);
   settingsAddForm.addEventListener('submit', onSettingsAddList);
+  syncBtn.addEventListener('click', onSyncPull);
+  syncConfigForm.addEventListener('submit', onSyncConfigSubmit);
   settingsListsList.addEventListener('dragstart', onSettingsRowDragStart);
   settingsListsList.addEventListener('dragend', onSettingsRowDragEnd);
   settingsListsList.addEventListener('dragover', onSettingsRowDragOver);
@@ -703,6 +712,7 @@ function showConfirm(message, opts = {}) {
 
 function openSettings() {
   renderSettingsLists();
+  refreshSyncStatus();
   settingsModal.classList.remove('hidden');
   syncOverlay();
 }
@@ -717,6 +727,7 @@ function renderSettingsLists() {
     <div class="settings-list-row" draggable="true" data-list-id="${l.id}">
       <span class="drag-handle" title="Drag to reorder">${ICON_DRAG}</span>
       <span class="settings-list-name">${escapeAttr(l.name)}</span>
+      <button type="button" class="settings-sync-btn" data-list-id="${l.id}" title="${l.syncEnabled ? 'Synced to the cloud — click to make local-only' : 'Local-only — click to sync this list to the cloud'}">${l.syncEnabled ? ICON_CLOUD : ICON_CLOUD_OFF}</button>
       <button type="button" class="settings-visibility-btn" data-list-id="${l.id}" title="${l.hidden ? 'Show this list' : 'Hide this list'}">${l.hidden ? ICON_SHOW : ICON_HIDE}</button>
       <button type="button" class="settings-delete-list-btn" data-list-id="${l.id}">Delete</button>
     </div>
@@ -724,6 +735,31 @@ function renderSettingsLists() {
 }
 
 async function onSettingsListsClick(e) {
+  const syncToggleBtn = e.target.closest('.settings-sync-btn');
+  if (syncToggleBtn) {
+    const list = findList(syncToggleBtn.dataset.listId);
+    if (list) {
+      if (!list.syncEnabled) {
+        // Turning sync ON — check the server's live status rather than a
+        // cached value, since a stale "configured" flag would silently
+        // enable sync for a list that never actually gets pushed anywhere.
+        const res = await fetch('/api/sync/status');
+        const { configured } = await res.json();
+        if (!configured) {
+          showConfirm(
+            'Cloud sync isn\'t set up yet. Scroll down to "Cloud sync" below and paste your MongoDB connection string first.',
+            { okOnly: true }
+          );
+          return;
+        }
+      }
+      list.syncEnabled = !list.syncEnabled;
+      scheduleSave();
+      renderSettingsLists();
+    }
+    return;
+  }
+
   const visBtn = e.target.closest('.settings-visibility-btn');
   if (visBtn) {
     const list = findList(visBtn.dataset.listId);
@@ -764,6 +800,7 @@ function onSettingsAddList(e) {
     name,
     sort: { by: 'priority', dir: 'asc' },
     hidden: false,
+    syncEnabled: false,
     items: []
   });
   settingsNewListName.value = '';
@@ -820,6 +857,56 @@ function onSettingsRowDrop(e) {
   scheduleSave();
   render();
   renderSettingsLists();
+}
+
+// ---------- cloud sync ----------
+// Local-first: /api/data saves already push to the cloud automatically in
+// the background (see server.js). This section only handles the explicit
+// pull (Sync button) and the connection-string form in settings.
+
+async function refreshSyncStatus() {
+  try {
+    const res = await fetch('/api/sync/status');
+    const { configured } = await res.json();
+    syncStatusText.textContent = configured
+      ? 'Cloud sync is configured. Local edits push automatically.'
+      : 'Not configured. Paste a MongoDB connection string below to enable cloud sync.';
+  } catch {
+    syncStatusText.textContent = 'Could not check cloud sync status.';
+  }
+}
+
+async function onSyncConfigSubmit(e) {
+  e.preventDefault();
+  const mongoUri = syncMongoUriInput.value.trim();
+  if (!mongoUri) return;
+  try {
+    const res = await fetch('/api/sync/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mongoUri })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    syncMongoUriInput.value = '';
+    await refreshSyncStatus();
+  } catch (err) {
+    showConfirm(`Couldn't save cloud sync settings: ${err.message}`, { okOnly: true });
+  }
+}
+
+async function onSyncPull() {
+  if (syncBtn.classList.contains('syncing')) return;
+  syncBtn.classList.add('syncing');
+  try {
+    const res = await fetch('/api/sync/pull', { method: 'POST' });
+    if (!res.ok) throw new Error(await res.text());
+    state = await res.json();
+    render();
+  } catch (err) {
+    showConfirm(`Sync failed: ${err.message}`, { okOnly: true });
+  } finally {
+    syncBtn.classList.remove('syncing');
+  }
 }
 
 // ---------- small helpers ----------

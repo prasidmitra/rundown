@@ -1,12 +1,13 @@
 {
-  "name": "tracker",
+  "name": "rundown",
   "version": "1.0.0",
-  "description": "Local personal todo tracker",
+  "description": "Local personal daily task tracker",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "package": "electron-packager . Rundown --platform=darwin --arch=arm64 --out=dist --overwrite --icon=icon.icns",
-    "release": "bash scripts/release.sh"
+    "package": "node scripts/package.js",
+    "generate-icon": "node scripts/generate-icon.js",
+    "release": "node scripts/release.js"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +15,10 @@
   "type": "commonjs",
   "devDependencies": {
     "electron": "^43.4.0",
-    "electron-packager": "^17.1.2"
+    "electron-packager": "^17.1.2",
+    "png-to-ico": "^3.0.2"
+  },
+  "dependencies": {
+    "mongodb": "^7.6.0"
   }
 }

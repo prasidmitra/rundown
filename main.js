@@ -4,10 +4,9 @@ const path = require('path');
 
 // Display name only (menu bar, About/Hide/Quit items). setName() also
 // shifts Electron's default userData path to match the new name, which
-// would silently orphan existing data - so pin userData explicitly, back
-// to the original folder, right after.
+// would silently orphan existing data - so pin userData explicitly.
 app.setName('Rundown');
-app.setPath('userData', path.join(app.getPath('appData'), 'tracker'));
+app.setPath('userData', path.join(app.getPath('appData'), 'Rundown'));
 
 // Keep the live data file in the standard per-user app-data folder, outside
 // the app bundle, so it survives rebuilds/reinstalls and stays writable even
@@ -16,11 +15,19 @@ const userDataDir = app.getPath('userData');
 fs.mkdirSync(userDataDir, { recursive: true });
 
 const userDataFile = path.join(userDataDir, 'data.json');
+// The userData folder used to be named 'tracker' (this app's old internal
+// name). Migrate any data left there on first run under the new 'Rundown'
+// folder, so renaming didn't orphan existing users' data.
+const legacyDataFile = path.join(app.getPath('appData'), 'tracker', 'data.json');
 const seedFile = path.join(__dirname, 'data.json');
-if (!fs.existsSync(userDataFile) && fs.existsSync(seedFile)) {
-  fs.copyFileSync(seedFile, userDataFile);
+if (!fs.existsSync(userDataFile)) {
+  if (fs.existsSync(legacyDataFile)) {
+    fs.copyFileSync(legacyDataFile, userDataFile);
+  } else if (fs.existsSync(seedFile)) {
+    fs.copyFileSync(seedFile, userDataFile);
+  }
 }
-process.env.TRACKER_DATA_DIR = userDataDir;
+process.env.RUNDOWN_DATA_DIR = userDataDir;
 
 const server = require('./server.js');
 

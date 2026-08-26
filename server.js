@@ -1,15 +1,18 @@
-// Tiny local server for the tracker app.
-// No dependencies - only Node core modules. Binds to localhost only.
+// Tiny local server for Rundown.
+// Core logic has no dependencies beyond Node itself; optional cloud sync
+// (sync.js) is the one place that pulls in an npm package (mongodb).
+// Binds to localhost only.
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const sync = require('./sync.js');
 
 const PORT = 8787;
 const ROOT = __dirname;
 // When run inside the packaged Electron app, main.js points this at a
 // writable per-user data directory outside the (possibly read-only) app
 // bundle. Falls back to this folder for plain `node server.js` use.
-const DATA_DIR = process.env.TRACKER_DATA_DIR || ROOT;
+const DATA_DIR = process.env.RUNDOWN_DATA_DIR || ROOT;
 const DATA_FILE = path.join(DATA_DIR, 'data.json');
 
 const DEFAULT_DATA = {
@@ -49,6 +52,14 @@ function writeData(jsonText) {
   fs.renameSync(tmpFile, DATA_FILE); // atomic on the same filesystem
 }
 
+function readBody(req) {
+  return new Promise(resolve => {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => resolve(body));
+  });
+}
+
 function serveStatic(res, relPath) {
   const filePath = path.join(ROOT, relPath);
   const ext = path.extname(filePath);
@@ -74,9 +85,7 @@ const server = http.createServer((req, res) => {
   }
 
   if (url === '/api/data' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    readBody(req).then(async body => {
       try {
         writeData(body);
         res.writeHead(200, { 'Content-Type': MIME['.json'] });
@@ -84,7 +93,61 @@ const server = http.createServer((req, res) => {
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'text/plain' });
         res.end('Bad request: ' + e.message);
+        return;
       }
+      // Best-effort: cloud push failures shouldn't affect the local save,
+      // which already succeeded by this point. Only lists with
+      // syncEnabled explicitly turned on ever leave this machine — sync is
+      // opt-in per list, off by default.
+      try {
+        const parsed = JSON.parse(body);
+        const syncable = { ...parsed, lists: (parsed.lists || []).filter(l => l.syncEnabled) };
+        await sync.push(DATA_DIR, syncable);
+      } catch (e) {
+        console.error('Cloud sync push failed:', e.message);
+      }
+    });
+    return;
+  }
+
+  if (url === '/api/sync/status' && req.method === 'GET') {
+    const { mongoUri } = sync.getConfig(DATA_DIR);
+    res.writeHead(200, { 'Content-Type': MIME['.json'] });
+    res.end(JSON.stringify({ configured: !!mongoUri }));
+    return;
+  }
+
+  if (url === '/api/sync/config' && req.method === 'POST') {
+    readBody(req).then(body => {
+      try {
+        const { mongoUri } = JSON.parse(body);
+        if (!mongoUri || typeof mongoUri !== 'string') throw new Error('mongoUri is required');
+        sync.setConfig(DATA_DIR, { mongoUri });
+        res.writeHead(200, { 'Content-Type': MIME['.json'] });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'text/plain' });
+        res.end('Bad request: ' + e.message);
+      }
+    });
+    return;
+  }
+
+  if (url === '/api/sync/pull' && req.method === 'POST') {
+    sync.pull(DATA_DIR).then(remote => {
+      // Pulling replaces the synced lists wholesale with the cloud's
+      // version, but local-only lists (syncEnabled false/unset) never went
+      // to the cloud in the first place, so they're preserved as-is rather
+      // than being wiped out.
+      const local = JSON.parse(readData());
+      const localOnlyLists = local.lists.filter(l => !l.syncEnabled);
+      const merged = { ...local, ...remote, lists: [...localOnlyLists, ...(remote.lists || [])] };
+      writeData(JSON.stringify(merged));
+      res.writeHead(200, { 'Content-Type': MIME['.json'] });
+      res.end(JSON.stringify(merged));
+    }).catch(e => {
+      res.writeHead(502, { 'Content-Type': 'text/plain' });
+      res.end('Sync failed: ' + e.message);
     });
     return;
   }
@@ -99,7 +162,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '127.0.0.1', () => {
-  console.log(`Tracker running at http://127.0.0.1:${PORT}`);
+  console.log(`Rundown server running at http://127.0.0.1:${PORT}`);
 });
 
 module.exports = server;
