@@ -77,19 +77,29 @@ Three plain-JS layers, no build tooling:
   or surface an error to the user. `POST /api/sync/pull` (the header Sync
   button) is the only way remote data flows back down. There's no realtime
   subscription or per-field conflict resolution, but both directions merge
-  by list `id` rather than overwriting wholesale (see below) — this matters
-  because a device only ever knows about its own local lists, and a naive
-  overwrite would erase lists synced from *other* devices it's never
-  pulled. Deleting a synced list locally does **not** delete it from the
-  cloud (or from other devices on their next pull) — merge-by-id only adds
-  and updates by id, there's no delete propagation. The Mongo connection
-  string is entered once via the settings modal (`POST /api/sync/config`)
-  and stored unencrypted in `<data dir>/sync-config.json` (gitignored,
-  per-user, outside the repo — never commit this file). A single document
-  (`_id: "singleton"`) in the `rundown_state` collection holds the synced
-  subset of state (`{ lists: [...] }`); the database name comes from the
-  URI's path (e.g. `.../rundown?...`), falling back to Mongo's default
-  `test` db if omitted from the URI.
+  by list `id` rather than overwriting wholesale — this matters because a
+  device only ever knows about its own local lists, and a naive overwrite
+  would erase lists synced from *other* devices it's never pulled. Deleting
+  a synced list locally does **not** delete it from the cloud (or from
+  other devices on their next pull) — merge-by-id only adds and updates,
+  there's no delete propagation. The Mongo connection string is entered
+  once via the settings modal (`POST /api/sync/config`) and stored
+  unencrypted in `<data dir>/sync-config.json` (gitignored, per-user,
+  outside the repo — never commit this file).
+  - **Storage model**: each synced list is its own document in the
+    `rundown_lists` collection, `_id`'d by the list's own `id`
+    (`push()` does a `bulkWrite` of per-list upserts; `pull()` does
+    `find({})` over the whole collection and reassembles `{ lists: [...] }`
+    from the results). This is deliberate: MongoDB caps any single document
+    at 16MB. Storing the whole app state as one document (the original
+    design) meant that 16MB ceiling applied to your *entire account*
+    regardless of how many lists you had. Splitting one-document-per-list
+    moves that ceiling to apply *per list* instead, so total storage can
+    actually grow toward the real free-tier cap (512MB on Atlas M0) by
+    spreading data across lists, rather than being bottlenecked at 16MB no
+    matter what. The database name comes from the URI's path (e.g.
+    `.../rundown?...`), falling back to Mongo's default `test` db if
+    omitted from the URI.
   - **Per-list opt-in**: sync is off by default for every list. Each list
     may carry `syncEnabled: true` (toggled via the cloud icon in the
     settings list rows; new lists are created with `syncEnabled: false`

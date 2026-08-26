@@ -2,14 +2,19 @@
 // source of truth for what's on screen; this module only pushes local
 // writes up (best-effort, on every save) and pulls remote state down (on
 // demand, via the Sync button) — there's no realtime subscription and no
-// per-field conflict resolution, just id-based list merging on both sides
-// (see push() and server.js's pull handler).
+// per-field conflict resolution, just id-based merging on both sides.
+//
+// Each synced list is stored as its own document (_id: list.id) rather
+// than the whole app state as one blob. That keeps MongoDB's 16MB
+// single-document limit scoped to a single list instead of your entire
+// account, so total storage can grow toward the real free-tier cap
+// (512MB on Atlas M0) instead of being bottlenecked at 16MB no matter how
+// much you have.
 const fs = require('fs');
 const path = require('path');
 const { MongoClient } = require('mongodb');
 
-const COLLECTION_NAME = 'rundown_state';
-const DOC_ID = 'singleton';
+const COLLECTION_NAME = 'rundown_lists';
 
 // Cache the connected client across requests so we don't reconnect on
 // every autosave. Keyed by URI so changing the configured URI reconnects.
@@ -50,37 +55,35 @@ async function getCollection(uri) {
 // Best-effort: errors are the caller's problem to log, never block a local
 // save on cloud availability.
 //
-// Merges by list id into whatever's already in the cloud, rather than
-// overwriting the whole document. A device only knows about its own
-// locally-synced lists, so a wholesale overwrite would erase lists synced
-// from *other* devices that this device has never pulled down — e.g.
-// enabling sync on a fresh machine before ever pulling would otherwise
-// wipe out every list synced from elsewhere. This does mean deleting a
-// synced list locally doesn't remove it from the cloud (or other devices,
-// on their next pull) — there's no delete propagation, only add/update.
+// Upserts each synced list into its own document, keyed by list id. This
+// is a per-list merge by construction — a device only ever touches the
+// documents for lists it knows about, so pushing from one device can never
+// clobber lists synced from another device it hasn't pulled yet. Deleting
+// a synced list locally does not delete its document in the cloud (or
+// remove it from other devices on their next pull) — there's no delete
+// propagation, only add/update.
 async function push(dataDir, dataObj) {
   const { mongoUri } = getConfig(dataDir);
   if (!mongoUri) return;
+  const lists = dataObj.lists || [];
+  if (lists.length === 0) return;
   const collection = await getCollection(mongoUri);
-  const existing = await collection.findOne({ _id: DOC_ID });
-  const remoteLists = (existing && existing.data && existing.data.lists) || [];
-  const localLists = dataObj.lists || [];
-  const localIds = new Set(localLists.map(l => l.id));
-  const mergedLists = [...remoteLists.filter(l => !localIds.has(l.id)), ...localLists];
-  await collection.updateOne(
-    { _id: DOC_ID },
-    { $set: { data: { ...dataObj, lists: mergedLists }, updatedAt: new Date() } },
-    { upsert: true }
-  );
+  await collection.bulkWrite(lists.map(list => ({
+    updateOne: {
+      filter: { _id: list.id },
+      update: { $set: { list, updatedAt: new Date() } },
+      upsert: true
+    }
+  })));
 }
 
 async function pull(dataDir) {
   const { mongoUri } = getConfig(dataDir);
   if (!mongoUri) throw new Error('Cloud sync is not configured yet.');
   const collection = await getCollection(mongoUri);
-  const doc = await collection.findOne({ _id: DOC_ID });
-  if (!doc) throw new Error('No data found in the cloud yet — edit a list locally first so it pushes something up.');
-  return doc.data;
+  const docs = await collection.find({}).toArray();
+  if (docs.length === 0) throw new Error('No data found in the cloud yet — edit a list locally first so it pushes something up.');
+  return { lists: docs.map(d => d.list) };
 }
 
 module.exports = { getConfig, setConfig, push, pull };

@@ -44,6 +44,17 @@ delete it on every synced device if you want it fully gone. The connection
 string is stored unencrypted in a local config file next to your data,
 never committed to source control.
 
+**Storage capacity:** each synced list is stored as its own document in
+MongoDB, so MongoDB's 16MB single-document limit applies per list, not to
+everything combined. That means total storage scales toward the real free
+tier cap (512MB on Atlas M0) as you sync more lists, rather than being
+capped at 16MB no matter how much you have. For reference: a typical
+lightweight item (short title, no notes) is well under a few hundred
+bytes, so a single list can hold tens of thousands of items before
+approaching its own 16MB ceiling — items with substantial rich-text notes
+in the details drawer take up more room, so the practical number is lower
+the more text-heavy your items are.
+
 ## Install (just want to use the app)
 
 1. Grab the latest build from [Releases](../../releases) — download
