@@ -55,7 +55,8 @@ const settingsNewListName = document.getElementById('settingsNewListName');
 const syncBtn = document.getElementById('syncBtn');
 const syncStatusText = document.getElementById('syncStatusText');
 const syncConfigForm = document.getElementById('syncConfigForm');
-const syncMongoUriInput = document.getElementById('syncMongoUriInput');
+const syncRelayUrlInput = document.getElementById('syncRelayUrlInput');
+const syncApiKeyInput = document.getElementById('syncApiKeyInput');
 
 const confirmModal = document.getElementById('confirmModal');
 const confirmMessage = document.getElementById('confirmMessage');
@@ -878,16 +879,18 @@ async function refreshSyncStatus() {
 
 async function onSyncConfigSubmit(e) {
   e.preventDefault();
-  const mongoUri = syncMongoUriInput.value.trim();
-  if (!mongoUri) return;
+  const relayUrl = syncRelayUrlInput.value.trim();
+  const apiKey = syncApiKeyInput.value.trim();
+  if (!relayUrl || !apiKey) return;
   try {
     const res = await fetch('/api/sync/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mongoUri })
+      body: JSON.stringify({ relayUrl, apiKey })
     });
     if (!res.ok) throw new Error(await res.text());
-    syncMongoUriInput.value = '';
+    syncRelayUrlInput.value = '';
+    syncApiKeyInput.value = '';
     await refreshSyncStatus();
   } catch (err) {
     showConfirm(`Couldn't save cloud sync settings: ${err.message}`, { okOnly: true });

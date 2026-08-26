@@ -111,18 +111,19 @@ const server = http.createServer((req, res) => {
   }
 
   if (url === '/api/sync/status' && req.method === 'GET') {
-    const { mongoUri } = sync.getConfig(DATA_DIR);
+    const { relayUrl, apiKey } = sync.getConfig(DATA_DIR);
     res.writeHead(200, { 'Content-Type': MIME['.json'] });
-    res.end(JSON.stringify({ configured: !!mongoUri }));
+    res.end(JSON.stringify({ configured: !!(relayUrl && apiKey) }));
     return;
   }
 
   if (url === '/api/sync/config' && req.method === 'POST') {
     readBody(req).then(body => {
       try {
-        const { mongoUri } = JSON.parse(body);
-        if (!mongoUri || typeof mongoUri !== 'string') throw new Error('mongoUri is required');
-        sync.setConfig(DATA_DIR, { mongoUri });
+        const { relayUrl, apiKey } = JSON.parse(body);
+        if (!relayUrl || typeof relayUrl !== 'string') throw new Error('relayUrl is required');
+        if (!apiKey || typeof apiKey !== 'string') throw new Error('apiKey is required');
+        sync.setConfig(DATA_DIR, { relayUrl, apiKey });
         res.writeHead(200, { 'Content-Type': MIME['.json'] });
         res.end(JSON.stringify({ ok: true }));
       } catch (e) {

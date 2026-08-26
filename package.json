@@ -17,8 +17,5 @@
     "electron": "^43.4.0",
     "electron-packager": "^17.1.2",
     "png-to-ico": "^3.0.2"
-  },
-  "dependencies": {
-    "mongodb": "^7.6.0"
   }
 }

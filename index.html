@@ -93,11 +93,12 @@
 
       <h3 class="settings-section-title">Cloud sync</h3>
       <p id="syncStatusText" class="settings-hint">Checking…</p>
-      <form id="syncConfigForm" class="settings-add-form">
-        <input id="syncMongoUriInput" type="password" placeholder="mongodb+srv://user:pass@cluster.mongodb.net/rundown" autocomplete="off">
+      <form id="syncConfigForm" class="settings-sync-config-form">
+        <input id="syncRelayUrlInput" type="text" placeholder="Relay URL (https://...)" autocomplete="off">
+        <input id="syncApiKeyInput" type="password" placeholder="API key" autocomplete="off">
         <button type="submit">Save</button>
       </form>
-      <p class="settings-hint">Lists are local-only by default. Click the cloud icon next to a list above to turn sync on for it — from then on, every local save pushes that list to this database automatically. Use the sync button in the header to pull the latest synced lists from the cloud onto this device (local-only lists are never affected).</p>
+      <p class="settings-hint">Lists are local-only by default. Click the cloud icon next to a list above to turn sync on for it — from then on, every local save pushes that list automatically. Use the sync button in the header to pull the latest synced lists onto this device (local-only lists are never affected).</p>
     </div>
   </div>
 

@@ -736,12 +736,30 @@ header h1 {
   margin: 6px 0 0;
 }
 
-#syncMongoUriInput {
-  flex: 1;
+.settings-sync-config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+#syncRelayUrlInput,
+#syncApiKeyInput {
   font-size: 15px;
   padding: 8px 10px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
+}
+
+.settings-sync-config-form button {
+  align-self: flex-start;
+  font-size: 15px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #000;
+  color: #fff;
+  cursor: pointer;
 }
 
 /* Themed confirm/alert dialog (replaces native confirm()/alert()) */
