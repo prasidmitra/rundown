@@ -45,13 +45,19 @@ server.on('error', err => {
 });
 
 const logoPath = path.join(__dirname, 'logo_icon_source.png');
+// Windows' taskbar expects a proper multi-resolution .ico (pre-baked
+// 16/32/48px bitmaps); feeding it the same huge single-resolution PNG used
+// for macOS's dock (which scales a high-res PNG fine) makes Windows
+// downsample it awkwardly, rendering smaller/blurrier than icons that ship
+// a real .ico. macOS/Linux keep the PNG.
+const windowIconPath = process.platform === 'win32' ? path.join(__dirname, 'icon.ico') : logoPath;
 
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
     height: 900,
     title: 'Rundown',
-    icon: logoPath,
+    icon: windowIconPath,
     webPreferences: {
       contextIsolation: true
     }
