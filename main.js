@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, shell } = require('electron');
+const { app, BrowserWindow, dialog, shell, Menu } = require('electron');
 const fs = require('fs');
 const path = require('path');
 
@@ -67,6 +67,14 @@ function createWindow() {
 app.whenReady().then(() => {
   if (process.platform === 'darwin' && app.dock) {
     app.dock.setIcon(logoPath); // packaged builds use icon.icns instead; this covers `npm start`
+  } else {
+    // On macOS the app menu lives in the system-wide menu bar (outside the
+    // window) and provides standard Cmd+C/V/Q accelerators, so it stays.
+    // Windows/Linux have no such OS-level menu bar - Electron's default
+    // menu would otherwise render as an unwanted File/Edit/View/Window
+    // strip inside the window itself. Rundown has no menu items of its
+    // own, so just remove it there.
+    Menu.setApplicationMenu(null);
   }
 
   if (server.listening) {
