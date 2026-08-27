@@ -61,6 +61,12 @@ exports.handler = async event => {
       return response(200, { lists: docs.map(d => d.list) });
     }
 
+    if (payload.action === 'delete') {
+      if (!payload.listId) return response(400, { error: 'listId is required' });
+      await collection.deleteOne({ _id: payload.listId });
+      return response(200, { ok: true });
+    }
+
     return response(400, { error: 'Unknown action: ' + payload.action });
   } catch (e) {
     console.error(e);

@@ -786,8 +786,29 @@ async function onSettingsListsClick(e) {
     { danger: true, okText: 'Delete' }
   );
   if (!ok) return;
+
+  let alsoDeleteFromCloud = false;
+  if (list.syncEnabled) {
+    alsoDeleteFromCloud = await showConfirm(
+      `"${list.name}" is synced to the cloud. Also delete it from the cloud (and other devices, on their next pull)?`,
+      { danger: true, okText: 'Delete from cloud too' }
+    );
+  }
+
   state.lists = state.lists.filter(l => l.id !== list.id);
   scheduleSave();
+  if (alsoDeleteFromCloud) {
+    try {
+      const res = await fetch('/api/sync/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listId: list.id })
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch (err) {
+      showConfirm(`Deleted locally, but couldn't delete from the cloud: ${err.message}`, { okOnly: true });
+    }
+  }
   render();
   renderSettingsLists();
 }

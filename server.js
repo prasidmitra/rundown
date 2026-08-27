@@ -153,6 +153,22 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (url === '/api/sync/delete' && req.method === 'POST') {
+    readBody(req).then(async body => {
+      try {
+        const { listId } = JSON.parse(body);
+        if (!listId) throw new Error('listId is required');
+        await sync.remove(DATA_DIR, listId);
+        res.writeHead(200, { 'Content-Type': MIME['.json'] });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(502, { 'Content-Type': 'text/plain' });
+        res.end('Cloud delete failed: ' + e.message);
+      }
+    });
+    return;
+  }
+
   if (STATIC_FILES[url]) {
     serveStatic(res, STATIC_FILES[url]);
     return;

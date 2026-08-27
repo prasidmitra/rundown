@@ -54,9 +54,10 @@ async function callRelay(dataDir, action, extra) {
 // The relay upserts each synced list into its own document, keyed by list
 // id — a per-list merge by construction, so pushing from one device can
 // never clobber lists synced from another device it hasn't pulled yet.
-// Deleting a synced list locally does not delete it remotely (or on other
-// devices, on their next pull) — there's no delete propagation, only
-// add/update.
+// Deleting a synced list locally does not delete it remotely by itself —
+// that only happens if the caller explicitly calls remove() too (see
+// server.js's /api/sync/delete, prompted by the UI when deleting a synced
+// list).
 async function push(dataDir, dataObj) {
   const { relayUrl } = getConfig(dataDir);
   if (!relayUrl) return;
@@ -72,4 +73,10 @@ async function pull(dataDir) {
   return { lists: (result && result.lists) || [] };
 }
 
-module.exports = { getConfig, setConfig, push, pull };
+async function remove(dataDir, listId) {
+  const { relayUrl } = getConfig(dataDir);
+  if (!relayUrl) throw new Error('Cloud sync is not configured yet.');
+  await callRelay(dataDir, 'delete', { listId });
+}
+
+module.exports = { getConfig, setConfig, push, pull, remove };

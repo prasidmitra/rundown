@@ -71,41 +71,51 @@ Three plain-JS layers, no build tooling:
   touching disk. The local JSON file is always the source of truth for
   rendering — there is no database in the traditional sense, even with
   cloud sync enabled (see below).
-- **`sync.js`** — optional cloud sync via MongoDB. `POST /api/data` calls
-  `sync.push()` after every successful local write — best-effort, fire and
-  forget; failures are logged server-side and never block the local save
-  or surface an error to the user. `POST /api/sync/pull` (the header Sync
-  button) is the only way remote data flows back down. There's no realtime
-  subscription or per-field conflict resolution, but both directions merge
+- **`sync.js`** — optional cloud sync via an HTTPS relay (see
+  `lambda-relay/`) in front of MongoDB, not a direct MongoDB connection.
+  `POST /api/data` calls `sync.push()` after every successful local write
+  — best-effort, fire and forget; failures are logged server-side and
+  never block the local save or surface an error to the user.
+  `POST /api/sync/pull` (the header Sync button) is the only way remote
+  data flows back down. `POST /api/sync/delete` removes one list's
+  document from the cloud outright (see below). There's no realtime
+  subscription or per-field conflict resolution, but push/pull both merge
   by list `id` rather than overwriting wholesale — this matters because a
   device only ever knows about its own local lists, and a naive overwrite
-  would erase lists synced from *other* devices it's never pulled. Deleting
-  a synced list locally does **not** delete it from the cloud (or from
-  other devices on their next pull) — merge-by-id only adds and updates,
-  there's no delete propagation. The Mongo connection string is entered
-  once via the settings modal (`POST /api/sync/config`) and stored
-  unencrypted in `<data dir>/sync-config.json` (gitignored, per-user,
-  outside the repo — never commit this file).
+  would erase lists synced from *other* devices it's never pulled. The
+  relay URL + API key are entered once via the settings modal
+  (`POST /api/sync/config`) and stored unencrypted in
+  `<data dir>/sync-config.json` (gitignored, per-user, outside the repo —
+  never commit this file). `sync.js` itself has zero npm dependencies —
+  it's plain `fetch()` calls; only `lambda-relay/` needs the `mongodb`
+  driver.
+  - **Why a relay instead of connecting to MongoDB directly**: MongoDB's
+    native driver needs non-standard TCP ports that some networks (e.g.
+    corporate VPNs) block even though plain HTTPS works fine — the same
+    reason apps like Notion never have this problem: their clients only
+    ever talk HTTPS to their own backend, never straight to a database.
+    `lambda-relay/` is that backend equivalent — a small AWS Lambda
+    function (deployed, not committed as infra state — see
+    `lambda-relay/README.md`) that's the only thing speaking MongoDB's
+    wire protocol; Rundown clients only ever do HTTPS to it.
   - **Storage model**: each synced list is its own document in the
-    `rundown_lists` collection, `_id`'d by the list's own `id`
-    (`push()` does a `bulkWrite` of per-list upserts; `pull()` does
-    `find({})` over the whole collection and reassembles `{ lists: [...] }`
-    from the results). This is deliberate: MongoDB caps any single document
-    at 16MB. Storing the whole app state as one document (the original
-    design) meant that 16MB ceiling applied to your *entire account*
-    regardless of how many lists you had. Splitting one-document-per-list
-    moves that ceiling to apply *per list* instead, so total storage can
-    actually grow toward the real free-tier cap (512MB on Atlas M0) by
-    spreading data across lists, rather than being bottlenecked at 16MB no
-    matter what. The database name comes from the URI's path (e.g.
-    `.../rundown?...`), falling back to Mongo's default `test` db if
-    omitted from the URI.
+    `rundown_lists` collection, `_id`'d by the list's own `id` (the relay's
+    `push` action does a `bulkWrite` of per-list upserts; `pull` does
+    `find({})` over the whole collection and reassembles
+    `{ lists: [...] }` from the results). This is deliberate: MongoDB caps
+    any single document at 16MB. Storing the whole app state as one
+    document (the original design) meant that 16MB ceiling applied to your
+    *entire account* regardless of how many lists you had. Splitting
+    one-document-per-list moves that ceiling to apply *per list* instead,
+    so total storage can actually grow toward the real free-tier cap
+    (512MB on Atlas M0) by spreading data across lists, rather than being
+    bottlenecked at 16MB no matter what.
   - **Per-list opt-in**: sync is off by default for every list. Each list
     may carry `syncEnabled: true` (toggled via the cloud icon in the
     settings list rows; new lists are created with `syncEnabled: false`
     explicitly). `server.js` filters the payload down to only
     `syncEnabled` lists before calling `sync.push()` — lists without it
-    (the default) never reach Mongo, and a list gets its first Mongo entry
+    (the default) never reach Mongo, and a list gets its first cloud entry
     only on the next save after you turn its toggle on. On pull,
     `server.js` doesn't let `sync.pull()`'s result overwrite local data
     wholesale — it merges: local lists that aren't `syncEnabled` are kept
@@ -115,6 +125,16 @@ Three plain-JS layers, no build tooling:
     why the pull merge lives in `server.js` rather than `sync.js` — it needs
     the current local state to know which lists to preserve, whereas
     `sync.js` only knows about the cloud.
+  - **Deleting a synced list**: by default, deleting a list locally does
+    **not** delete it from the cloud (or from other devices, on their next
+    pull) — push/pull merge-by-id only ever adds/updates, never removes.
+    `app.js`'s delete-list flow explicitly asks ("Also delete it from the
+    cloud?") when the list being deleted has `syncEnabled: true`; if
+    confirmed, it calls `POST /api/sync/delete` with the list's `id`,
+    which calls `sync.remove()`, which tells the relay to
+    `deleteOne({ _id: listId })`. This is opt-in and explicit by design —
+    a plain local delete should never silently reach across to other
+    devices' data.
 - **`main.js`** — Electron entry point. Sets `userData` explicitly to
   `<OS app-data dir>/Rundown` via `app.getPath('appData')` (pinned
   independently of `app.setName('Rundown')`, since renaming the app would
