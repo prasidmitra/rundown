@@ -92,14 +92,23 @@ header h1 {
   to { transform: rotate(360deg); }
 }
 
-/* Exactly 2 columns; lists fill left-to-right, top-to-bottom (3rd list
-   lands below the 1st, 4th below the 2nd, and so on). */
+/* Two side-by-side columns. Each column stacks its lists independently, so
+   a tall list on one side never leaves a gap under a short list on the
+   other. Odd lists (1st, 3rd, …) go down the left column, even lists
+   (2nd, 4th, …) down the right. */
 .lists-container {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(420px, 1fr));
+  display: flex;
+  align-items: flex-start;
   gap: 24px;
   padding: 24px;
-  align-items: start;
+}
+
+.list-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1 1 0;
+  min-width: 420px;
 }
 
 .list-panel {
@@ -111,11 +120,11 @@ header h1 {
 }
 
 .list-panel.full-width {
-  grid-column: 1 / -1;
+  flex: 1 1 100%;
 }
 
 .empty-state {
-  grid-column: 1 / -1;
+  flex: 1 1 100%;
   color: #94a3b8;
   text-align: center;
   padding: 40px;

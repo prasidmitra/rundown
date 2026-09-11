@@ -210,11 +210,22 @@ function render() {
     return;
   }
 
-  visibleLists.forEach(list => {
-    const panel = renderListPanel(list);
-    if (visibleLists.length === 1) panel.classList.add('full-width');
+  if (visibleLists.length === 1) {
+    const panel = renderListPanel(visibleLists[0]);
+    panel.classList.add('full-width');
     container.appendChild(panel);
+    return;
+  }
+
+  // Two independent columns: odd lists (1st, 3rd, …) stack down the left,
+  // even lists (2nd, 4th, …) down the right. Each column lays out on its
+  // own, so a tall list on one side never pushes the next list on the other
+  // side down past a gap.
+  const columns = [el('<div class="list-column"></div>'), el('<div class="list-column"></div>')];
+  visibleLists.forEach((list, i) => {
+    columns[i % 2].appendChild(renderListPanel(list));
   });
+  columns.forEach(col => container.appendChild(col));
 }
 
 function renderListPanel(list) {

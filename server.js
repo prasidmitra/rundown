@@ -140,9 +140,31 @@ const server = http.createServer((req, res) => {
       // version, but local-only lists (syncEnabled false/unset) never went
       // to the cloud in the first place, so they're preserved as-is rather
       // than being wiped out.
+      //
+      // List *order* is a per-machine preference, not something the cloud
+      // stores (each list is its own document, and find({}) returns them in
+      // an arbitrary order), so we must not let the cloud's ordering clobber
+      // the local order. Walk the local lists in their current order,
+      // substitute the cloud's version of each synced list in place, drop
+      // synced lists the cloud no longer has, and append any cloud lists
+      // this machine hasn't seen yet at the end.
       const local = JSON.parse(readData());
-      const localOnlyLists = local.lists.filter(l => !l.syncEnabled);
-      const merged = { ...local, ...remote, lists: [...localOnlyLists, ...(remote.lists || [])] };
+      const remoteById = new Map((remote.lists || []).map(l => [l.id, l]));
+      const lists = [];
+      const seen = new Set();
+      for (const l of local.lists) {
+        if (l.syncEnabled) {
+          const r = remoteById.get(l.id);
+          if (r) { lists.push(r); seen.add(l.id); }
+        } else {
+          lists.push(l);
+          seen.add(l.id);
+        }
+      }
+      for (const r of (remote.lists || [])) {
+        if (!seen.has(r.id)) lists.push(r);
+      }
+      const merged = { ...local, ...remote, lists };
       writeData(JSON.stringify(merged));
       res.writeHead(200, { 'Content-Type': MIME['.json'] });
       res.end(JSON.stringify(merged));
