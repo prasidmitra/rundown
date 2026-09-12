@@ -153,7 +153,7 @@ async function init() {
   }
 
   document.addEventListener('click', e => {
-    if (openMenu && !e.target.closest('.dropdown-menu') && !e.target.closest('.badge-dropdown') && !e.target.closest('.field-dropdown')) {
+    if (openMenu && !e.target.closest('.dropdown-menu') && !e.target.closest('.badge-dropdown') && !e.target.closest('.field-dropdown') && !e.target.closest('.mobile-status-btn') && !e.target.closest('.mobile-priority-btn')) {
       closeOpenMenu();
     }
   });
