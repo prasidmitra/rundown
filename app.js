@@ -329,7 +329,7 @@ function renderMobileItemRow(item) {
     <div class="mobile-item-row" data-item-id="${item.id}">
       <button type="button" class="mobile-status-btn status-${slug(item.status)}" data-kind="status" aria-label="${STATUS_LABELS[item.status]}" title="${STATUS_LABELS[item.status]}">${STATUS_ICONS[item.status]}</button>
       <input class="mobile-item-input" value="${escapeAttr(item.item)}" placeholder="Item" aria-label="Item">
-      <button type="button" class="mobile-priority-btn priority-${slug(item.priority)}" data-kind="priority" aria-label="${PRIORITY_LABELS[item.priority]}" title="${PRIORITY_LABELS[item.priority]}"></button>
+      <button type="button" class="mobile-priority-btn priority-${slug(item.priority)}" data-kind="priority" aria-label="${PRIORITY_LABELS[item.priority]}" title="${PRIORITY_LABELS[item.priority]}"><span class="dot"></span></button>
       <button class="details-btn${item.details ? ' has-content' : ''}" title="View/edit details" aria-label="View or edit details">${ICON_DETAILS}</button>
     </div>
   `;

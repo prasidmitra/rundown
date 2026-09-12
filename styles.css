@@ -934,14 +934,39 @@ header h1 {
     height: 16px;
   }
 
+  /* Visual priority dot stays small (14px), but the button is a full 32px tap
+     target with the colored dot drawn by an inner <span class="dot">. */
   .mobile-priority-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mobile-priority-btn .dot {
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    flex-shrink: 0;
+  }
+  .mobile-priority-btn.priority-critical .dot { background: #fee2e2; }
+  .mobile-priority-btn.priority-high .dot     { background: #ffedd5; }
+  .mobile-priority-btn.priority-normal .dot   { background: #e2e8f0; }
+  .mobile-priority-btn.priority-low .dot      { background: #ecfdf5; }
+
+  /* Bigger dropdown picker targets on touch */
+  .dropdown-menu {
+    padding: 10px;
+    gap: 8px;
+  }
+  .dropdown-option {
+    font-size: 15px;
+    padding: 10px 16px;
   }
 
   /* Full-screen details drawer with a back arrow */
