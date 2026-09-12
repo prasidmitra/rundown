@@ -25,6 +25,8 @@ const ICON_TRASH = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" 
 const ICON_CLOUD = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H8a5 5 0 01-1-9.9A6 6 0 0118 8.2 4.5 4.5 0 0117.5 19z"></path></svg>';
 const ICON_CLOUD_OFF = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H8a5 5 0 01-1-9.9A6 6 0 0118 8.2 4.5 4.5 0 0117.5 19z"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
 
+const ICON_PLUS = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+
 // Compact status icons used on the phone instead of the text badges.
 const STATUS_ICONS = {
   'not started': '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle></svg>',
@@ -358,7 +360,7 @@ function renderMobileListPanel(list) {
 
       <form class="add-item-form mobile-add-form">
         <input class="add-item-text" placeholder="Add a new item…" required>
-        <button type="submit" class="add-item-btn">Add</button>
+        <button type="submit" class="add-item-btn" aria-label="Add item">${ICON_PLUS}</button>
       </form>
 
       <div class="mobile-items">
@@ -487,7 +489,7 @@ function renderListPanel(list) {
         <input class="add-item-text" placeholder="Add a new item…" required>
         <button type="button" class="field-dropdown add-item-status-btn" data-kind="status" data-value="not started">${STATUS_LABELS['not started']}</button>
         <button type="button" class="field-dropdown add-item-priority-btn" data-kind="priority" data-value="normal">${PRIORITY_LABELS['normal']}</button>
-        <button type="submit" class="add-item-btn">Add</button>
+        <button type="submit" class="add-item-btn" aria-label="Add item">${ICON_PLUS}</button>
       </form>
 
       <table class="items-table main-table">

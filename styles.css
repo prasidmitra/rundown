@@ -204,14 +204,23 @@ header h1 {
 }
 
 .add-item-btn {
-  font-size: 16px;
-  font-weight: 600;
-  padding: 10px 18px;
-  border: 1px solid transparent; /* matches the 1px border on the inputs so heights line up */
-  border-radius: 12px;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
   background: #000000;
   color: #fff;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.add-item-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .add-item-btn:hover {
@@ -711,16 +720,16 @@ header h1 {
 #settingsNewListName {
   flex: 1;
   font-size: 15px;
-  padding: 8px 10px;
+  padding: 8px 16px;
   border: 1px solid #cbd5e1;
-  border-radius: 8px;
+  border-radius: 999px;
 }
 
 .settings-add-form button {
   font-size: 15px;
-  padding: 8px 14px;
+  padding: 8px 18px;
   border: 1px solid transparent; /* match the input's 1px border height */
-  border-radius: 8px;
+  border-radius: 999px;
   background: #000;
   color: #fff;
   cursor: pointer;
@@ -847,9 +856,8 @@ header h1 {
     display: flex;
     gap: 8px;
     overflow-x: auto;
-    padding: 10px 16px;
+    padding: 12px 16px 8px;
     background: #f7f8fa;
-    border-bottom: 1px solid #e2e5ea;
     -webkit-overflow-scrolling: touch;
   }
   .list-switcher-pill {
@@ -858,7 +866,7 @@ header h1 {
     font-weight: 600;
     font-family: inherit;
     padding: 8px 16px;
-    border-radius: 10px; /* rounded rectangle, same radius-to-height ratio as the add button */
+    border-radius: 999px;
     border: 1px solid #cbd5e1;
     background: #fff;
     color: #475569;
