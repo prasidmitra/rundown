@@ -26,7 +26,10 @@ for f in "${DIST[@]}"; do
 done
 cp -r icons "$STAGING/icons"
 
+REMOTE="$(git remote get-url origin)"
+
 git -C "$STAGING" init -q
+git -C "$STAGING" remote add origin "$REMOTE"
 git -C "$STAGING" add -A
 git -C "$STAGING" \
   -c user.name="Rundown" \
