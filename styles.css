@@ -219,8 +219,8 @@ header h1 {
 }
 
 .add-item-btn svg {
-  width: 28px;
-  height: 28px;
+  width: 100%;
+  height: 100%;
 }
 
 .add-item-btn:hover {
