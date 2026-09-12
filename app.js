@@ -1246,7 +1246,12 @@ async function onSyncPull() {
       if (!res.ok) throw new Error(await res.text());
       state = await res.json();
     } else {
-      await syncPush(); // flush any unsynced local lists up first so pull never drops them
+      // Pull first, then merge: the cloud is the source of truth for the
+      // pulled lists (remote wins per list id, so edits from other devices
+      // come through). Do NOT flush a push first — that would overwrite the
+      // cloud with this device's stale copy before reading it, clobbering
+      // the other device's item changes. Local edits already went up on
+      // save (saveNow() pushes), so there's nothing to flush here anyway.
       const remote = await relayCall('pull');
       const remoteLists = (remote && remote.lists) || [];
       const remoteById = new Map(remoteLists.map(l => [l.id, l]));
