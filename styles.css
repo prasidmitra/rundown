@@ -857,7 +857,7 @@ header h1 {
     display: flex;
     gap: 8px;
     overflow-x: auto;
-    padding: 12px 16px 8px;
+    padding: 18px 16px 2px;
     background: #f7f8fa;
     -webkit-overflow-scrolling: touch;
   }
