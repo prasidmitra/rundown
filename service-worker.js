@@ -3,7 +3,7 @@
 // reload always picks up a fresh deploy (the precached copy is refreshed in
 // the background on every successful fetch). Bump VERSION when the offline
 // shell itself changes; routine code updates no longer need a version bump.
-const VERSION = 'rundown-v2';
+const VERSION = 'rundown-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -37,9 +37,13 @@ self.addEventListener('fetch', event => {
   // Never touch the API/sync surface (local server or relay) — network only.
   if (url.pathname.indexOf('/api/') !== -1) return;
 
-  // Network-first: prefer the live copy, fall back to the precache offline.
+  // Network-first with the HTTP cache bypassed: GitHub Pages serves a 10-min
+  // Cache-Control max-age, and a standalone PWA has no refresh gesture to
+  // revalidate against it, so `cache: 'reload'` forces a real network fetch
+  // every time. The precache is refreshed in the background and used only
+  // when offline.
   event.respondWith(
-    fetch(event.request)
+    fetch(event.request, { cache: 'reload' })
       .then(response => {
         if (response && response.ok) {
           const copy = response.clone();
