@@ -1,8 +1,9 @@
-// Cache-first app shell for the Rundown PWA. Static assets are precached on
-// install so the app launches offline; everything else (API/sync calls, and
-// any asset not in the precache list) falls back to the network. Bump VERSION
-// when any of the precached files change to force a cache refresh.
-const VERSION = 'rundown-v1';
+// App-shell service worker for the Rundown PWA. Assets are precached on
+// install so the app launches offline, and served network-first so a normal
+// reload always picks up a fresh deploy (the precached copy is refreshed in
+// the background on every successful fetch). Bump VERSION when the offline
+// shell itself changes; routine code updates no longer need a version bump.
+const VERSION = 'rundown-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -36,18 +37,16 @@ self.addEventListener('fetch', event => {
   // Never touch the API/sync surface (local server or relay) — network only.
   if (url.pathname.indexOf('/api/') !== -1) return;
 
+  // Network-first: prefer the live copy, fall back to the precache offline.
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      const fetched = fetch(event.request)
-        .then(response => {
-          if (response && response.ok) {
-            const copy = response.clone();
-            caches.open(VERSION).then(cache => cache.put(event.request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || fetched;
-    })
+    fetch(event.request)
+      .then(response => {
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(VERSION).then(cache => cache.put(event.request, copy));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
