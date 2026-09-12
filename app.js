@@ -25,11 +25,28 @@ const ICON_TRASH = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" 
 const ICON_CLOUD = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H8a5 5 0 01-1-9.9A6 6 0 0118 8.2 4.5 4.5 0 0117.5 19z"></path></svg>';
 const ICON_CLOUD_OFF = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19H8a5 5 0 01-1-9.9A6 6 0 0118 8.2 4.5 4.5 0 0117.5 19z"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
 
+// Compact status icons used on the phone instead of the text badges.
+const STATUS_ICONS = {
+  'not started': '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle></svg>',
+  'in progress': '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline></svg>',
+  blocked: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="4.5" y1="4.5" x2="19.5" y2="19.5"></line></svg>',
+  completed: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+  cancelled: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
+};
+
 let state = null;
 let saveTimer = null;
 let currentDrawerItem = null; // { listId, itemId }
 let openMenu = null; // { el, trigger }
 let draggedListId = null;
+let activeListId = null; // mobile: which list the single-list view shows
+let SERVER_MODE = false; // true when the local Node server (/api/data) is present
+
+const LS_STATE_KEY = 'rundown.state';
+const LS_SYNC_KEY = 'rundown.syncConfig';
+
+const MOBILE_QUERY = window.matchMedia('(max-width: 900px)');
+function isMobile() { return MOBILE_QUERY.matches; }
 
 const container = document.getElementById('listsContainer');
 const settingsBtn = document.getElementById('settingsBtn');
@@ -57,6 +74,8 @@ const syncStatusText = document.getElementById('syncStatusText');
 const syncConfigForm = document.getElementById('syncConfigForm');
 const syncRelayUrlInput = document.getElementById('syncRelayUrlInput');
 const syncApiKeyInput = document.getElementById('syncApiKeyInput');
+const listSwitcher = document.getElementById('listSwitcher');
+const syncHelpText = document.getElementById('syncHelpText');
 
 const confirmModal = document.getElementById('confirmModal');
 const confirmMessage = document.getElementById('confirmMessage');
@@ -66,8 +85,10 @@ const confirmCancelBtn = document.getElementById('confirmCancelBtn');
 init();
 
 async function init() {
-  const res = await fetch('/api/data');
-  state = await res.json();
+  state = await loadState();
+  if (!SERVER_MODE && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+  }
   render();
 
   updateClock();
@@ -118,6 +139,19 @@ async function init() {
   settingsListsList.addEventListener('dragleave', onSettingsRowDragLeave);
   settingsListsList.addEventListener('drop', onSettingsRowDrop);
 
+  listSwitcher.addEventListener('click', e => {
+    const pill = e.target.closest('.list-switcher-pill');
+    if (!pill) return;
+    activeListId = pill.dataset.listId;
+    render();
+  });
+
+  if (syncHelpText) {
+    syncHelpText.textContent = SERVER_MODE
+      ? 'Lists are local-only by default. Click the cloud icon next to a list above to turn sync on for it — from then on, every local save pushes that list automatically. Use the sync button in the header to pull the latest synced lists onto this device (local-only lists are never affected).'
+      : 'Every list on this device syncs automatically. Enter your relay URL and API key below, then use the sync button in the header to pull your lists from other devices.';
+  }
+
   document.addEventListener('click', e => {
     if (openMenu && !e.target.closest('.dropdown-menu') && !e.target.closest('.badge-dropdown') && !e.target.closest('.field-dropdown')) {
       closeOpenMenu();
@@ -136,17 +170,40 @@ async function init() {
 
 // ---------- persistence ----------
 
+// Loads state from the local Node server when present (the Electron desktop
+// app), and falls back to browser localStorage for the hosted PWA. The PWA
+// has no server, so /api/data 404s and the fallback takes over.
+async function loadState() {
+  try {
+    const res = await fetch('/api/data');
+    if (res.ok && (res.headers.get('content-type') || '').includes('application/json')) {
+      SERVER_MODE = true;
+      return await res.json();
+    }
+  } catch (e) { /* no server — fall through to localStorage */ }
+  try {
+    const raw = localStorage.getItem(LS_STATE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { /* localStorage unavailable */ }
+  return { lists: [] };
+}
+
 function scheduleSave() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveNow, 400);
 }
 
 function saveNow() {
-  fetch('/api/data', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(state)
-  });
+  if (SERVER_MODE) {
+    fetch('/api/data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state)
+    });
+    return;
+  }
+  try { localStorage.setItem(LS_STATE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+  syncPush();
 }
 
 // ---------- lookups ----------
@@ -202,11 +259,16 @@ function render() {
   }
   closeOpenMenu();
 
+  if (isMobile()) {
+    renderMobile();
+    return;
+  }
+
   container.innerHTML = '';
   const visibleLists = state.lists.filter(l => !l.hidden);
 
   if (visibleLists.length === 0) {
-    container.innerHTML = '<p class="empty-state">All lists are hidden. Open Settings to show one.</p>';
+    container.innerHTML = emptyStateHtml();
     return;
   }
 
@@ -226,6 +288,178 @@ function render() {
     columns[i % 2].appendChild(renderListPanel(list));
   });
   columns.forEach(col => container.appendChild(col));
+}
+
+function emptyStateHtml() {
+  return state.lists.length === 0
+    ? '<p class="empty-state">No lists yet. Open Settings to add one, or set up sync and pull your lists.</p>'
+    : '<p class="empty-state">All lists are hidden. Open Settings to show one.</p>';
+}
+
+// ---------- mobile single-list rendering ----------
+
+function getActiveListId() {
+  const visible = state.lists.filter(l => !l.hidden);
+  if (!visible.length) return null;
+  if (activeListId && visible.some(l => l.id === activeListId)) return activeListId;
+  return visible[0].id;
+}
+
+function renderListSwitcher() {
+  const activeId = getActiveListId();
+  listSwitcher.innerHTML = state.lists.filter(l => !l.hidden).map(l => `
+    <button type="button" class="list-switcher-pill${l.id === activeId ? ' active' : ''}" data-list-id="${l.id}">${escapeAttr(l.name)}</button>
+  `).join('');
+}
+
+function renderMobile() {
+  renderListSwitcher();
+  const activeId = getActiveListId();
+  const active = activeId ? findList(activeId) : null;
+  container.innerHTML = '';
+  if (!active) {
+    container.innerHTML = emptyStateHtml();
+    return;
+  }
+  container.appendChild(renderMobileListPanel(active));
+}
+
+function renderMobileItemRow(item) {
+  return `
+    <div class="mobile-item-row" data-item-id="${item.id}">
+      <button type="button" class="mobile-status-btn status-${slug(item.status)}" data-kind="status" aria-label="${STATUS_LABELS[item.status]}" title="${STATUS_LABELS[item.status]}">${STATUS_ICONS[item.status]}</button>
+      <input class="mobile-item-input" value="${escapeAttr(item.item)}" placeholder="Item" aria-label="Item">
+      <button type="button" class="mobile-priority-btn priority-${slug(item.priority)}" data-kind="priority" aria-label="${PRIORITY_LABELS[item.priority]}" title="${PRIORITY_LABELS[item.priority]}"></button>
+      <button class="details-btn${item.details ? ' has-content' : ''}" title="View/edit details" aria-label="View or edit details">${ICON_DETAILS}</button>
+    </div>
+  `;
+}
+
+function renderMobileListPanel(list) {
+  const visible = visibleSortedItems(list);
+  const hidden = hiddenItemsOf(list);
+
+  const panel = el(`
+    <section class="list-panel mobile-list-panel" data-list-id="${list.id}">
+      <div class="panel-header">
+        <input class="list-name-input" value="${escapeAttr(list.name)}" aria-label="List name">
+      </div>
+
+      <form class="add-item-form mobile-add-form">
+        <input class="add-item-text" placeholder="Add a new item…" required>
+        <button type="submit" class="add-item-btn">Add</button>
+      </form>
+
+      <div class="mobile-items">
+        ${visible.map(renderMobileItemRow).join('') || '<p class="empty-state">No items yet.</p>'}
+      </div>
+
+      ${hidden.length ? `
+        <div class="hidden-section">
+          <button class="hidden-toggle" aria-expanded="false">Show hidden (${hidden.length})</button>
+          <div class="mobile-items hidden-table hidden">
+            ${hidden.map(renderMobileItemRow).join('')}
+          </div>
+        </div>` : ''}
+    </section>
+  `);
+
+  bindMobilePanelEvents(panel, list);
+  return panel;
+}
+
+function bindMobilePanelEvents(panel, list) {
+  panel.querySelector('.list-name-input').addEventListener('input', e => {
+    list.name = e.target.value;
+    scheduleSave();
+  });
+
+  const addForm = panel.querySelector('.add-item-form');
+  const addTextInput = panel.querySelector('.add-item-text');
+  addForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const text = addTextInput.value.trim();
+    if (!text) return;
+    list.items.unshift({
+      id: genId('i'),
+      item: text,
+      status: 'not started',
+      priority: 'normal',
+      details: ''
+    });
+    scheduleSave();
+    render();
+  });
+
+  const hiddenToggle = panel.querySelector('.hidden-toggle');
+  if (hiddenToggle) {
+    hiddenToggle.addEventListener('click', e => {
+      const table = panel.querySelector('.hidden-table');
+      const nowVisible = table.classList.contains('hidden');
+      table.classList.toggle('hidden');
+      e.currentTarget.setAttribute('aria-expanded', String(nowVisible));
+    });
+  }
+
+  panel.querySelectorAll('.mobile-item-row').forEach(row => {
+    const item = findItem(list, row.dataset.itemId);
+    if (!item) return;
+    const input = row.querySelector('.mobile-item-input');
+    const statusBtn = row.querySelector('.mobile-status-btn');
+    const priorityBtn = row.querySelector('.mobile-priority-btn');
+    const detailsBtn = row.querySelector('.details-btn');
+
+    input.addEventListener('input', () => {
+      item.item = input.value;
+      scheduleSave();
+    });
+
+    statusBtn.addEventListener('click', () => {
+      openDropdownMenu(statusBtn, 'status', item.status, value => {
+        item.status = value;
+        scheduleSave();
+        render();
+      });
+    });
+
+    priorityBtn.addEventListener('click', () => {
+      openDropdownMenu(priorityBtn, 'priority', item.priority, value => {
+        item.priority = value;
+        scheduleSave();
+        render();
+      });
+    });
+
+    detailsBtn.addEventListener('click', () => openDrawer(list, item));
+
+    attachLongPress(row, async () => {
+      const ok = await showConfirm(`Delete "${item.item}"?`, { danger: true, okText: 'Delete' });
+      if (!ok) return;
+      list.items = list.items.filter(i => i.id !== item.id);
+      scheduleSave();
+      render();
+    });
+  });
+}
+
+function attachLongPress(el, onLongPress) {
+  let timer = null;
+  let startX = 0;
+  let startY = 0;
+  const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
+
+  el.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    startX = e.clientX;
+    startY = e.clientY;
+    clear();
+    timer = setTimeout(() => { timer = null; onLongPress(); }, 500);
+  });
+  el.addEventListener('pointermove', e => {
+    if (timer && (Math.abs(e.clientX - startX) > 10 || Math.abs(e.clientY - startY) > 10)) clear();
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(type => el.addEventListener(type, clear));
+  el.addEventListener('contextmenu', e => e.preventDefault());
 }
 
 function renderListPanel(list) {
@@ -739,7 +973,7 @@ function renderSettingsLists() {
     <div class="settings-list-row" draggable="true" data-list-id="${l.id}">
       <span class="drag-handle" title="Drag to reorder">${ICON_DRAG}</span>
       <span class="settings-list-name">${escapeAttr(l.name)}</span>
-      <button type="button" class="settings-sync-btn" data-list-id="${l.id}" title="${l.syncEnabled ? 'Synced to the cloud — click to make local-only' : 'Local-only — click to sync this list to the cloud'}">${l.syncEnabled ? ICON_CLOUD : ICON_CLOUD_OFF}</button>
+      ${SERVER_MODE ? `<button type="button" class="settings-sync-btn" data-list-id="${l.id}" title="${l.syncEnabled ? 'Synced to the cloud — click to make local-only' : 'Local-only — click to sync this list to the cloud'}">${l.syncEnabled ? ICON_CLOUD : ICON_CLOUD_OFF}</button>` : ''}
       <button type="button" class="settings-visibility-btn" data-list-id="${l.id}" title="${l.hidden ? 'Show this list' : 'Hide this list'}">${l.hidden ? ICON_SHOW : ICON_HIDE}</button>
       <button type="button" class="settings-delete-list-btn" data-list-id="${l.id}">Delete</button>
     </div>
@@ -799,7 +1033,10 @@ async function onSettingsListsClick(e) {
   if (!ok) return;
 
   let alsoDeleteFromCloud = false;
-  if (list.syncEnabled) {
+  if (!SERVER_MODE) {
+    // PWA: every list is synced, so deleting removes it everywhere.
+    alsoDeleteFromCloud = true;
+  } else if (list.syncEnabled) {
     alsoDeleteFromCloud = await showConfirm(
       `"${list.name}" is synced to the cloud. Also delete it from the cloud (and other devices, on their next pull)?`,
       { danger: true, okText: 'Delete from cloud too' }
@@ -810,12 +1047,7 @@ async function onSettingsListsClick(e) {
   scheduleSave();
   if (alsoDeleteFromCloud) {
     try {
-      const res = await fetch('/api/sync/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listId: list.id })
-      });
-      if (!res.ok) throw new Error(await res.text());
+      await syncDelete(list.id);
     } catch (err) {
       showConfirm(`Deleted locally, but couldn't delete from the cloud: ${err.message}`, { okOnly: true });
     }
@@ -833,7 +1065,7 @@ function onSettingsAddList(e) {
     name,
     sort: { by: 'priority', dir: 'asc' },
     hidden: false,
-    syncEnabled: false,
+    syncEnabled: SERVER_MODE ? false : true,
     items: []
   });
   settingsNewListName.value = '';
@@ -896,17 +1128,75 @@ function onSettingsRowDrop(e) {
 // Local-first: /api/data saves already push to the cloud automatically in
 // the background (see server.js). This section only handles the explicit
 // pull (Sync button) and the connection-string form in settings.
+//
+// On the desktop the server holds the relay URL + API key and proxies sync
+// via /api/sync/*. In the PWA there is no server, so the same calls go
+// straight to the relay from the browser, with the relay URL + API key stored
+// in localStorage.
+
+function getSyncConfig() {
+  try { return JSON.parse(localStorage.getItem(LS_SYNC_KEY) || 'null'); }
+  catch (e) { return null; }
+}
+
+function setSyncConfig(config) {
+  localStorage.setItem(LS_SYNC_KEY, JSON.stringify(config));
+}
+
+async function relayCall(action, extra = {}) {
+  const cfg = getSyncConfig();
+  if (!cfg || !cfg.relayUrl || !cfg.apiKey) throw new Error('Cloud sync is not configured yet.');
+  const res = await fetch(cfg.relayUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': cfg.apiKey },
+    body: JSON.stringify({ action, ...extra })
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `Relay returned ${res.status}`);
+  return body;
+}
+
+async function syncPush() {
+  if (SERVER_MODE) return; // the server already pushes on every /api/data POST
+  const cfg = getSyncConfig();
+  if (!cfg || !cfg.relayUrl || !cfg.apiKey) return;
+  try {
+    await relayCall('push', { lists: state.lists });
+  } catch (e) {
+    console.error('Cloud sync push failed:', e.message);
+  }
+}
+
+async function syncDelete(listId) {
+  if (SERVER_MODE) {
+    const res = await fetch('/api/sync/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ listId })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return;
+  }
+  await relayCall('delete', { listId });
+}
 
 async function refreshSyncStatus() {
-  try {
-    const res = await fetch('/api/sync/status');
-    const { configured } = await res.json();
-    syncStatusText.textContent = configured
-      ? 'Cloud sync is configured. Local edits push automatically.'
-      : 'Not configured. Paste a MongoDB connection string below to enable cloud sync.';
-  } catch {
-    syncStatusText.textContent = 'Could not check cloud sync status.';
+  if (SERVER_MODE) {
+    try {
+      const res = await fetch('/api/sync/status');
+      const { configured } = await res.json();
+      syncStatusText.textContent = configured
+        ? 'Cloud sync is configured. Local edits push automatically.'
+        : 'Not configured. Enter your relay URL and API key below to enable cloud sync.';
+    } catch {
+      syncStatusText.textContent = 'Could not check cloud sync status.';
+    }
+    return;
   }
+  const cfg = getSyncConfig();
+  syncStatusText.textContent = (cfg && cfg.relayUrl && cfg.apiKey)
+    ? 'Cloud sync is configured. Every list on this device syncs automatically.'
+    : 'Not configured. Enter your relay URL and API key below to enable cloud sync.';
 }
 
 async function onSyncConfigSubmit(e) {
@@ -914,29 +1204,56 @@ async function onSyncConfigSubmit(e) {
   const relayUrl = syncRelayUrlInput.value.trim();
   const apiKey = syncApiKeyInput.value.trim();
   if (!relayUrl || !apiKey) return;
-  try {
-    const res = await fetch('/api/sync/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ relayUrl, apiKey })
-    });
-    if (!res.ok) throw new Error(await res.text());
-    syncRelayUrlInput.value = '';
-    syncApiKeyInput.value = '';
-    await refreshSyncStatus();
-  } catch (err) {
-    showConfirm(`Couldn't save cloud sync settings: ${err.message}`, { okOnly: true });
+  if (SERVER_MODE) {
+    try {
+      const res = await fetch('/api/sync/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ relayUrl, apiKey })
+      });
+      if (!res.ok) throw new Error(await res.text());
+      syncRelayUrlInput.value = '';
+      syncApiKeyInput.value = '';
+      await refreshSyncStatus();
+    } catch (err) {
+      showConfirm(`Couldn't save cloud sync settings: ${err.message}`, { okOnly: true });
+    }
+    return;
   }
+  setSyncConfig({ relayUrl, apiKey });
+  syncRelayUrlInput.value = '';
+  syncApiKeyInput.value = '';
+  await refreshSyncStatus();
 }
 
 async function onSyncPull() {
   if (syncBtn.classList.contains('syncing')) return;
   syncBtn.classList.add('syncing');
   try {
-    const res = await fetch('/api/sync/pull', { method: 'POST' });
-    if (!res.ok) throw new Error(await res.text());
-    state = await res.json();
+    if (SERVER_MODE) {
+      const res = await fetch('/api/sync/pull', { method: 'POST' });
+      if (!res.ok) throw new Error(await res.text());
+      state = await res.json();
+    } else {
+      await syncPush(); // flush any unsynced local lists up first so pull never drops them
+      const remote = await relayCall('pull');
+      const remoteLists = (remote && remote.lists) || [];
+      const remoteById = new Map(remoteLists.map(l => [l.id, l]));
+      const lists = [];
+      const seen = new Set();
+      for (const l of state.lists) {
+        const r = remoteById.get(l.id);
+        if (r) { lists.push(r); seen.add(l.id); }
+        // a local list the cloud no longer has is dropped (deletes propagate)
+      }
+      for (const r of remoteLists) {
+        if (!seen.has(r.id)) lists.push(r);
+      }
+      state = { lists };
+      saveNow();
+    }
     render();
+    renderSettingsLists();
   } catch (err) {
     showConfirm(`Sync failed: ${err.message}`, { okOnly: true });
   } finally {

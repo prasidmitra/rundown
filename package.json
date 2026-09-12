@@ -7,6 +7,8 @@
     "start": "electron .",
     "package": "node scripts/package.js",
     "generate-icon": "node scripts/generate-icon.js",
+    "generate-pwa-icons": "node scripts/generate-pwa-icons.js",
+    "deploy-pwa": "bash scripts/deploy-pwa.sh",
     "release": "node scripts/release.js"
   },
   "keywords": [],

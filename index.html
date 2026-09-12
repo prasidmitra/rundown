@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Rundown">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
 <title>Rundown</title>
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -19,6 +25,8 @@
       </button>
     </div>
   </header>
+
+  <nav id="listSwitcher" class="list-switcher" aria-label="Lists"></nav>
 
   <main id="listsContainer" class="lists-container"></main>
 
@@ -98,7 +106,7 @@
         <input id="syncApiKeyInput" type="password" placeholder="API key" autocomplete="off">
         <button type="submit">Save</button>
       </form>
-      <p class="settings-hint">Lists are local-only by default. Click the cloud icon next to a list above to turn sync on for it — from then on, every local save pushes that list automatically. Use the sync button in the header to pull the latest synced lists onto this device (local-only lists are never affected).</p>
+      <p class="settings-hint" id="syncHelpText">Lists are local-only by default. Click the cloud icon next to a list above to turn sync on for it — from then on, every local save pushes that list automatically. Use the sync button in the header to pull the latest synced lists onto this device (local-only lists are never affected).</p>
     </div>
   </div>
 
