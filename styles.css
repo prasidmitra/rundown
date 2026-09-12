@@ -166,8 +166,8 @@ header h1 {
 .add-item-text {
   flex: 2 1 200px;
   font-size: 16px;
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: 10px 16px;
+  border-radius: 999px;
   border: 1px solid #cbd5e1;
 }
 
@@ -178,8 +178,8 @@ header h1 {
   gap: 8px;
   font-size: 16px;
   font-family: inherit;
-  padding: 10px 12px;
-  border-radius: 12px;
+  padding: 10px 14px;
+  border-radius: 999px;
   border: 1px solid #cbd5e1;
   background: #fff;
   color: #1f2430;
