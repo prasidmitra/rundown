@@ -87,7 +87,18 @@ init();
 async function init() {
   state = await loadState();
   if (!SERVER_MODE && 'serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+    navigator.serviceWorker.register('./service-worker.js').then(() => {
+      // A newly-deployed service worker takes control of the open page via
+      // skipWaiting + clients.claim; reload once so the fresh app shell
+      // actually runs. A standalone PWA has no address bar to refresh from,
+      // so this is the only way updates can apply themselves.
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+    }).catch(() => {});
   }
   render();
 
