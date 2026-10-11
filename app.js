@@ -46,6 +46,7 @@ let SERVER_MODE = false; // true when the local Node server (/api/data) is prese
 
 const LS_STATE_KEY = 'rundown.state';
 const LS_SYNC_KEY = 'rundown.syncConfig';
+const LS_THEME_KEY = 'rundown.theme';
 
 const MOBILE_QUERY = window.matchMedia('(max-width: 900px)');
 function isMobile() { return MOBILE_QUERY.matches; }
@@ -72,6 +73,7 @@ const settingsAddForm = document.getElementById('settingsAddListForm');
 const settingsNewListName = document.getElementById('settingsNewListName');
 
 const syncBtn = document.getElementById('syncBtn');
+const themeToggle = document.getElementById('themeToggle');
 const syncStatusText = document.getElementById('syncStatusText');
 const syncConfigForm = document.getElementById('syncConfigForm');
 const syncRelayUrlInput = document.getElementById('syncRelayUrlInput');
@@ -102,6 +104,8 @@ async function init() {
       });
     }).catch(() => {});
   }
+  applyTheme(resolveTheme());
+
   render();
 
   updateClock();
@@ -109,6 +113,7 @@ async function init() {
 
   settingsBtn.addEventListener('click', openSettings);
   settingsCloseBtn.addEventListener('click', closeSettings);
+  themeToggle.addEventListener('click', toggleTheme);
   drawerCloseBtn.addEventListener('click', closeDrawer);
   overlay.addEventListener('click', () => {
     if (!confirmModal.classList.contains('hidden')) { confirmCancelBtn.click(); return; }
@@ -217,6 +222,28 @@ function saveNow() {
   }
   try { localStorage.setItem(LS_STATE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
   syncPush();
+}
+
+// ---------- theme ----------
+// Theme is a per-device UI preference, kept out of `state` so it never syncs
+// to the cloud or gets written to data.json.
+
+function resolveTheme() {
+  try {
+    const stored = localStorage.getItem(LS_THEME_KEY);
+    if (stored === 'light' || stored === 'dark') return stored;
+  } catch (e) { /* localStorage unavailable */ }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+}
+
+function toggleTheme() {
+  const next = resolveTheme() === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  try { localStorage.setItem(LS_THEME_KEY, next); } catch (e) { /* ignore */ }
 }
 
 // ---------- lookups ----------
