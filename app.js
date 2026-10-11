@@ -114,7 +114,7 @@ async function init() {
   settingsBtn.addEventListener('click', openSettings);
   settingsCloseBtn.addEventListener('click', closeSettings);
   themeToggle.addEventListener('click', toggleTheme);
-  attachListSwipe(container);
+  attachCarousel(container);
   drawerCloseBtn.addEventListener('click', closeDrawer);
   overlay.addEventListener('click', () => {
     if (!confirmModal.classList.contains('hidden')) { confirmCancelBtn.click(); return; }
@@ -353,27 +353,25 @@ function renderListSwitcher() {
   `).join('');
 }
 
-function switchList(direction) {
-  if (!isMobile()) return;
+function activeListIndex() {
   const visible = state.lists.filter(l => !l.hidden);
-  if (visible.length < 2) return;
-  const activeId = getActiveListId();
-  const idx = visible.findIndex(l => l.id === activeId);
-  const next = visible[(idx + direction + visible.length) % visible.length];
-  activeListId = next.id;
-  render();
+  const idx = visible.findIndex(l => l.id === getActiveListId());
+  return idx < 0 ? 0 : idx;
 }
 
 function renderMobile() {
+  const visible = state.lists.filter(l => !l.hidden);
   renderListSwitcher();
-  const activeId = getActiveListId();
-  const active = activeId ? findList(activeId) : null;
   container.innerHTML = '';
-  if (!active) {
+  if (!visible.length) {
     container.innerHTML = emptyStateHtml();
     return;
   }
-  container.appendChild(renderMobileListPanel(active));
+  const activeIndex = activeListIndex();
+  const track = el('<div class="carousel-track"></div>');
+  visible.forEach(l => track.appendChild(renderMobileListPanel(l)));
+  container.appendChild(track);
+  track.style.transform = `translateX(-${activeIndex * 100}%)`;
 }
 
 function renderMobileItemRow(item) {
@@ -393,7 +391,8 @@ function renderMobileListPanel(list) {
 
   const panel = el(`
     <section class="list-panel mobile-list-panel" data-list-id="${list.id}">
-      <div class="panel-header">
+      <div class="mobile-card">
+        <div class="panel-header">
         <input class="list-name-input" value="${escapeAttr(list.name)}" aria-label="List name">
       </div>
 
@@ -413,6 +412,7 @@ function renderMobileListPanel(list) {
             ${hidden.map(renderMobileItemRow).join('')}
           </div>
         </div>` : ''}
+      </div>
     </section>
   `);
 
@@ -514,29 +514,69 @@ function attachLongPress(el, onLongPress) {
   el.addEventListener('contextmenu', e => e.preventDefault());
 }
 
-// Swipe left/right on the list area to move to the next/previous list.
-function attachListSwipe(el) {
+// Mobile list carousel: drag the track horizontally so the active card follows
+// the finger, slides out to the side, and its neighbor slides in — snapping to
+// the nearest list on release (iOS-style paging).
+function attachCarousel(container) {
+  let track = null;
+  let index = 0;
   let startX = 0;
   let startY = 0;
-  let tracking = false;
+  let dragging = false;
 
-  el.addEventListener('pointerdown', e => {
-    if (e.pointerType === 'mouse') return; // touch/pen only
-    tracking = true;
+  const settle = () => {
+    if (!track) return;
+    track.style.transition = 'transform 0.25s ease';
+    track.style.transform = `translateX(-${index * 100}%)`;
+  };
+
+  container.addEventListener('pointerdown', e => {
+    if (!isMobile() || e.pointerType === 'mouse') return;
+    track = container.querySelector('.carousel-track');
+    if (!track) return;
+    index = activeListIndex();
     startX = e.clientX;
     startY = e.clientY;
+    dragging = true;
+    track.style.transition = 'none';
   });
 
-  el.addEventListener('pointerup', e => {
-    if (!tracking) return;
-    tracking = false;
+  container.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    track.style.transform = `translateX(calc(${-index * 100}% + ${dx}px))`;
+  });
+
+  container.addEventListener('pointerup', e => {
+    if (!dragging) return;
+    dragging = false;
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
-    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    switchList(dx < 0 ? 1 : -1);
+    const visible = state.lists.filter(l => !l.hidden);
+
+    // Not a decisive horizontal swipe — settle back where we started.
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) {
+      settle();
+      return;
+    }
+
+    const threshold = Math.max(60, track.clientWidth * 0.25);
+    let target = index + (Math.abs(dx) > threshold ? (dx < 0 ? 1 : -1) : 0);
+    target = Math.max(0, Math.min(visible.length - 1, target));
+
+    if (target !== index) {
+      index = target;
+      activeListId = visible[target].id;
+      renderListSwitcher();
+    }
+    settle();
   });
 
-  el.addEventListener('pointercancel', () => { tracking = false; });
+  container.addEventListener('pointercancel', () => {
+    if (!dragging) return;
+    dragging = false;
+    settle();
+  });
 }
 
 function renderListPanel(list) {

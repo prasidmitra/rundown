@@ -950,8 +950,16 @@ header h1 {
   }
 
   .lists-container {
-    padding: 16px 16px calc(16px + 88px);
-    gap: 16px;
+    display: block;
+    padding: 16px 0 calc(16px + 88px);
+    overflow: hidden;
+    touch-action: pan-y;
+  }
+
+  .carousel-track {
+    display: flex;
+    align-items: flex-start;
+    will-change: transform;
   }
 
   .list-switcher {
@@ -988,12 +996,22 @@ header h1 {
   }
 
   .mobile-list-panel {
-    flex: 1 1 100%;
+    flex: 0 0 100%;
+    width: 100%;
+    padding: 0 16px;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .mobile-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 16px;
     padding: 16px;
-    /* Let vertical page scroll work natively while horizontal swipes reach JS
-       (the list-switcher gesture). */
-    touch-action: pan-y;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   }
 
   .mobile-add-form {
