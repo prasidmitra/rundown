@@ -114,6 +114,7 @@ async function init() {
   settingsBtn.addEventListener('click', openSettings);
   settingsCloseBtn.addEventListener('click', closeSettings);
   themeToggle.addEventListener('click', toggleTheme);
+  attachListSwipe(container);
   drawerCloseBtn.addEventListener('click', closeDrawer);
   overlay.addEventListener('click', () => {
     if (!confirmModal.classList.contains('hidden')) { confirmCancelBtn.click(); return; }
@@ -352,6 +353,17 @@ function renderListSwitcher() {
   `).join('');
 }
 
+function switchList(direction) {
+  if (!isMobile()) return;
+  const visible = state.lists.filter(l => !l.hidden);
+  if (visible.length < 2) return;
+  const activeId = getActiveListId();
+  const idx = visible.findIndex(l => l.id === activeId);
+  const next = visible[(idx + direction + visible.length) % visible.length];
+  activeListId = next.id;
+  render();
+}
+
 function renderMobile() {
   renderListSwitcher();
   const activeId = getActiveListId();
@@ -500,6 +512,31 @@ function attachLongPress(el, onLongPress) {
   });
   ['pointerup', 'pointercancel', 'pointerleave'].forEach(type => el.addEventListener(type, clear));
   el.addEventListener('contextmenu', e => e.preventDefault());
+}
+
+// Swipe left/right on the list area to move to the next/previous list.
+function attachListSwipe(el) {
+  let startX = 0;
+  let startY = 0;
+  let tracking = false;
+
+  el.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse') return; // touch/pen only
+    tracking = true;
+    startX = e.clientX;
+    startY = e.clientY;
+  });
+
+  el.addEventListener('pointerup', e => {
+    if (!tracking) return;
+    tracking = false;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    switchList(dx < 0 ? 1 : -1);
+  });
+
+  el.addEventListener('pointercancel', () => { tracking = false; });
 }
 
 function renderListPanel(list) {

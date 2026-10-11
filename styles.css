@@ -950,16 +950,22 @@ header h1 {
   }
 
   .lists-container {
-    padding: 16px;
+    padding: 16px 16px calc(16px + 88px);
     gap: 16px;
   }
 
   .list-switcher {
     display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
     gap: 8px;
     overflow-x: auto;
-    padding: 18px 16px 2px;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
     background: var(--bg);
+    border-top: 1px solid var(--divider);
     -webkit-overflow-scrolling: touch;
   }
   .list-switcher-pill {
@@ -985,6 +991,9 @@ header h1 {
     flex: 1 1 100%;
     border-radius: 16px;
     padding: 16px;
+    /* Let vertical page scroll work natively while horizontal swipes reach JS
+       (the list-switcher gesture). */
+    touch-action: pan-y;
   }
 
   .mobile-add-form {
