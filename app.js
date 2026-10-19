@@ -150,7 +150,15 @@ async function init() {
 
   settingsListsList.addEventListener('click', onSettingsListsClick);
   settingsAddForm.addEventListener('submit', onSettingsAddList);
-  syncBtn.addEventListener('click', onSyncPull);
+  syncBtn.addEventListener('click', () => onSyncPull());
+  // Pull automatically whenever the app comes back into view — the PWA
+  // returning to the foreground, or the desktop window regaining focus — so
+  // edits are made against the other device's latest copy rather than a
+  // stale one that would overwrite it on the next push.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') maybeAutoSync();
+  });
+  window.addEventListener('focus', maybeAutoSync);
   syncConfigForm.addEventListener('submit', onSyncConfigSubmit);
   settingsListsList.addEventListener('dragstart', onSettingsRowDragStart);
   settingsListsList.addEventListener('dragend', onSettingsRowDragEnd);
@@ -185,6 +193,8 @@ async function init() {
       closeSettings();
     }
   });
+
+  maybeAutoSync();
 }
 
 // ---------- persistence ----------
@@ -213,6 +223,8 @@ function scheduleSave() {
 }
 
 function saveNow() {
+  clearTimeout(saveTimer);
+  saveTimer = null;
   if (SERVER_MODE) {
     fetch('/api/data', {
       method: 'POST',
@@ -1343,14 +1355,45 @@ async function onSyncConfigSubmit(e) {
   await refreshSyncStatus();
 }
 
-async function onSyncPull() {
+const AUTO_SYNC_MIN_INTERVAL_MS = 30000;
+let lastAutoSyncAt = 0;
+
+// Background pull on launch/foreground/focus. Pulling replaces lists
+// wholesale, so it's skipped whenever it could clobber or interrupt
+// something in flight: a debounced save that hasn't gone out yet, a field
+// being typed in, or an open drawer/modal/menu/drag. Throttled because
+// desktop focus fires on every click back into the window, and silent
+// because a failed background sync (e.g. offline) shouldn't pop a dialog.
+function maybeAutoSync() {
+  if (Date.now() - lastAutoSyncAt < AUTO_SYNC_MIN_INTERVAL_MS) return;
+  if (!SERVER_MODE) {
+    const cfg = getSyncConfig();
+    if (!cfg || !cfg.relayUrl || !cfg.apiKey) return;
+  }
+  if (isUserBusy()) return;
+  lastAutoSyncAt = Date.now();
+  onSyncPull({ silent: true });
+}
+
+function isUserBusy() {
+  if (saveTimer || openMenu || draggedListId) return true;
+  const active = document.activeElement;
+  if (active && (active.matches('input, textarea, select') || active.isContentEditable)) return true;
+  return !overlay.classList.contains('hidden') || !drawer.classList.contains('hidden');
+}
+
+async function onSyncPull({ silent = false } = {}) {
   if (syncBtn.classList.contains('syncing')) return;
   syncBtn.classList.add('syncing');
   try {
     if (SERVER_MODE) {
       const res = await fetch('/api/sync/pull', { method: 'POST' });
       if (!res.ok) throw new Error(await res.text());
-      state = await res.json();
+      const pulled = await res.json();
+      // The user started editing while a background pull was in flight —
+      // keep their in-memory state; its next save supersedes the pull.
+      if (silent && isUserBusy()) return;
+      state = pulled;
     } else {
       // Pull first, then merge: the cloud is the source of truth for the
       // pulled lists (remote wins per list id, so edits from other devices
@@ -1359,6 +1402,7 @@ async function onSyncPull() {
       // the other device's item changes. Local edits already went up on
       // save (saveNow() pushes), so there's nothing to flush here anyway.
       const remote = await relayCall('pull');
+      if (silent && isUserBusy()) return;
       const remoteLists = (remote && remote.lists) || [];
       const remoteById = new Map(remoteLists.map(l => [l.id, l]));
       const lists = [];
@@ -1377,7 +1421,8 @@ async function onSyncPull() {
     render();
     renderSettingsLists();
   } catch (err) {
-    showConfirm(`Sync failed: ${err.message}`, { okOnly: true });
+    if (silent) console.error('Auto sync failed:', err.message);
+    else showConfirm(`Sync failed: ${err.message}`, { okOnly: true });
   } finally {
     syncBtn.classList.remove('syncing');
   }
