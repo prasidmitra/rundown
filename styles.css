@@ -1,0 +1,1141 @@
+/* Light + dark mode. Generous font sizes and spacing for easy reading/clicking.
+   All colors are CSS custom properties declared on :root (light = current
+   values) and overridden under :root[data-theme="dark"]; a data-theme
+   attribute on <html> drives which set applies. The header stays pure black
+   in both modes and is intentionally not tokenized. */
+
+:root {
+  color-scheme: light;
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --hover: #f1f5f9;
+  --hover-soft: #f8fafc;
+  --border: #e2e5ea;
+  --divider: #eef0f3;
+  --input-border: #cbd5e1;
+  --text: #1f2430;
+  --text-muted: #64748b;
+  --text-faint: #94a3b8;
+  --text-secondary: #475569;
+  --icon: #334155;
+  --primary-bg: #000000;
+  --primary-bg-hover: #222222;
+  --primary-fg: #ffffff;
+  --accent: #2563eb;
+  --accent-strong: #1e40af;
+  --accent-soft-bg: #dbeafe;
+  --accent-soft-border: #93c5fd;
+  --accent-ring: rgba(37, 99, 235, 0.45);
+  --accent-warn: #ca8a04;
+  --ring: rgba(148, 163, 184, 0.35);
+  --ring-soft: rgba(148, 163, 184, 0.25);
+  --danger: #ef4444;
+  --danger-strong: #b91c1c;
+  --danger-border: #fca5a5;
+  --danger-soft-bg: #fee2e2;
+  --overlay: rgba(15, 23, 42, 0.25);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #35374b;
+  --surface: #344955;
+  --hover: #405563;
+  --hover-soft: #3a4d5a;
+  --border: #50727b;
+  --divider: #3e5260;
+  --input-border: #50727b;
+  --text: #e7ecef;
+  --text-muted: #a7b6bc;
+  --text-faint: #7e9099;
+  --text-secondary: #c6d2d6;
+  --icon: #c6d2d6;
+  --primary-bg: #78a083;
+  --primary-bg-hover: #89ae93;
+  --primary-fg: #1f262b;
+  --accent: #8fb598;
+  --accent-strong: #8fb598;
+  --accent-soft-bg: #2e4637;
+  --accent-soft-border: #78a083;
+  --accent-ring: rgba(120, 160, 131, 0.5);
+  --accent-warn: #eab308;
+  --ring: rgba(80, 114, 123, 0.55);
+  --ring-soft: rgba(80, 114, 123, 0.35);
+  --danger: #f87171;
+  --danger-strong: #f87171;
+  --danger-border: #7f1d1d;
+  --danger-soft-bg: #3a1d1d;
+  --overlay: rgba(0, 0, 0, 0.55);
+}
+
+* { box-sizing: border-box; }
+
+/* Hide scrollbars everywhere (Electron is always Chromium, so this is safe)
+   while keeping scrolling itself fully functional. */
+html {
+  scrollbar-width: none;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  margin: 0;
+}
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 12px 28px;
+  background: #000000;
+  border-bottom: 1px solid #000000;
+}
+
+.nav-clock {
+  justify-self: center;
+  color: #ffffff;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+header h1 {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 22px;
+  margin: 0;
+  color: #ffffff;
+}
+
+.logo-icon {
+  height: 26px;
+  width: auto;
+  flex-shrink: 0;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-self: end;
+}
+
+#syncBtn,
+#settingsBtn,
+#themeToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+#syncBtn:hover,
+#settingsBtn:hover,
+#themeToggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+#syncBtn.syncing svg {
+  animation: sync-spin 0.9s linear infinite;
+}
+
+@keyframes sync-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Theme toggle shows the moon in light mode (tap → dark) and the sun in dark
+   mode (tap → light). */
+#themeToggle .icon-sun {
+  display: none;
+}
+[data-theme="dark"] #themeToggle .icon-moon {
+  display: none;
+}
+[data-theme="dark"] #themeToggle .icon-sun {
+  display: block;
+}
+
+/* Two side-by-side columns. Each column stacks its lists independently, so
+   a tall list on one side never leaves a gap under a short list on the
+   other. Odd lists (1st, 3rd, …) go down the left column, even lists
+   (2nd, 4th, …) down the right. */
+.lists-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 24px;
+}
+
+.list-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1 1 0;
+  min-width: 420px;
+}
+
+.list-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.list-panel.full-width {
+  flex: 1 1 100%;
+}
+
+.empty-state {
+  flex: 1 1 100%;
+  color: var(--text-faint);
+  text-align: center;
+  padding: 40px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.list-name-input {
+  font-size: 20px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  padding: 6px 8px;
+  border-radius: 6px;
+  flex: 1;
+  min-width: 120px;
+}
+
+.list-name-input:focus {
+  background: var(--hover);
+  outline: none;
+}
+
+.add-item-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.add-item-text {
+  flex: 2 1 200px;
+  font-size: 16px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--input-border);
+}
+
+.field-dropdown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 16px;
+  font-family: inherit;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--input-border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.field-dropdown::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+
+.field-dropdown.dropdown-open {
+  border-color: var(--text-faint);
+  box-shadow: 0 0 0 2px var(--ring-soft);
+}
+
+.add-item-btn {
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary-bg);
+  color: var(--primary-fg);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.add-item-btn svg {
+  width: 100%;
+  height: 100%;
+}
+
+.add-item-btn:hover {
+  background: var(--primary-bg-hover);
+}
+
+.items-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.items-table th {
+  text-align: left;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 4px 6px;
+  border-bottom: 2px solid var(--border);
+}
+
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortable-th:hover {
+  color: var(--text);
+}
+
+.items-table td {
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--divider);
+  vertical-align: middle;
+}
+
+/* Fixed column widths so switching sort field or badge label length never
+   shifts the layout — the Item column (no width set) absorbs the rest. */
+.col-num {
+  width: 30px;
+  color: var(--text-faint);
+  font-size: 13px;
+  text-align: center;
+}
+
+.col-status { width: 128px; }
+.col-priority { width: 98px; }
+.col-details { width: 42px; }
+.col-delete { width: 38px; }
+
+.item-text-input {
+  width: 100%;
+  font-size: 16px;
+  border: none;
+  background: transparent;
+  padding: 4px 4px;
+  border-radius: 6px;
+  font-family: inherit;
+  vertical-align: middle;
+}
+
+.item-text-input:focus {
+  background: var(--hover-soft);
+  outline: 1px solid var(--input-border);
+}
+
+/* Badge-style dropdown triggers (replace native <select> for status/priority) */
+.badge-dropdown {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  line-height: 1.4;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  border: none;
+  border-radius: 999px;
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.badge-dropdown::after {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  margin-left: 6px;
+  opacity: 0.55;
+}
+
+.badge-dropdown.dropdown-open {
+  box-shadow: 0 0 0 2px var(--accent-ring);
+}
+
+/* Floating menu opened by a badge-dropdown trigger. Options are sized to
+   their own content (same pill shape as the badge), not stretched rows. */
+.dropdown-menu {
+  position: fixed;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  padding: 8px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.dropdown-option {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.dropdown-option:hover {
+  filter: brightness(0.95);
+}
+
+[data-theme="dark"] .dropdown-option:hover {
+  filter: brightness(1.15);
+}
+
+.dropdown-option.active {
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.18);
+}
+
+[data-theme="dark"] .dropdown-option.active {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+/* Plain themed variant used by non-colored fields (e.g. add-item Status/Priority) */
+.dropdown-menu.neutral {
+  display: block;
+  align-items: stretch;
+  gap: 0;
+}
+
+.dropdown-menu.neutral .dropdown-option {
+  display: block;
+  width: 100%;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+}
+
+.dropdown-menu.neutral .dropdown-option:hover {
+  filter: none;
+  background: var(--hover);
+}
+
+.dropdown-menu.neutral .dropdown-option.active {
+  background: var(--hover);
+  box-shadow: none;
+  font-weight: 700;
+}
+
+/* Status colors — shared by badge triggers and dropdown option rows */
+.status-not-started { background: #eceff1; color: #37474f; }
+.status-in-progress { background: var(--accent-soft-bg); color: var(--accent-strong); }
+.status-blocked      { background: #fef3c7; color: #92400e; }
+.status-completed    { background: #dcfce7; color: #166534; }
+.status-cancelled    { background: #e5e7eb; color: #6b7280; }
+
+[data-theme="dark"] .status-not-started { background: #263238; color: #cfd8dc; }
+[data-theme="dark"] .status-in-progress { background: #1e3a8a; color: #93c5fd; }
+[data-theme="dark"] .status-blocked      { background: #713f12; color: #fcd34d; }
+[data-theme="dark"] .status-completed    { background: #14532d; color: #86efac; }
+[data-theme="dark"] .status-cancelled    { background: #374151; color: #9ca3af; }
+
+/* Priority colors — shared by badge triggers and dropdown option rows */
+.priority-critical { background: var(--danger-soft-bg); color: var(--danger-strong); }
+.priority-high     { background: #ffedd5; color: #c2410c; }
+.priority-normal   { background: #e2e8f0; color: var(--text-secondary); }
+.priority-low      { background: #ecfdf5; color: #15803d; }
+
+[data-theme="dark"] .priority-critical { background: #7f1d1d; color: #fca5a5; }
+[data-theme="dark"] .priority-high     { background: #7c2d12; color: #fdba74; }
+[data-theme="dark"] .priority-normal   { background: #334155; color: #cbd5e1; }
+[data-theme="dark"] .priority-low      { background: #064e3b; color: #6ee7b7; }
+
+.details-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 999px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.details-btn:hover {
+  background: var(--hover);
+}
+
+.details-btn.has-content {
+  color: var(--accent-warn);
+}
+
+.delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 999px;
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+.delete-btn:hover {
+  background: var(--danger-soft-bg);
+  color: var(--danger);
+}
+
+.empty-row td {
+  color: var(--text-faint);
+  text-align: center;
+  padding: 20px;
+}
+
+.hidden-section {
+  margin-top: 18px;
+}
+
+.hidden-toggle {
+  font-size: 15px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px dashed var(--input-border);
+  background: var(--hover-soft);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.hidden-table {
+  margin-top: 12px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  z-index: 15;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 420px;
+  max-width: 90vw;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+}
+
+.drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+
+.drawer-header h2 {
+  font-size: 18px;
+  margin: 0;
+  word-break: break-word;
+}
+
+.modal-close-btn {
+  font-size: 15px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--input-border);
+  background: var(--surface);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.drawer-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 14px 20px 0;
+}
+
+.toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--input-border);
+  background: var(--surface);
+  color: var(--icon);
+  cursor: pointer;
+}
+
+.toolbar-btn:hover {
+  background: var(--hover);
+}
+
+.toolbar-btn.active {
+  background: var(--accent-soft-bg);
+  border-color: var(--accent-soft-border);
+  color: var(--accent-strong);
+}
+
+.toolbar-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+  margin: 2px 2px;
+}
+
+.drawer-editor {
+  flex: 1;
+  margin: 12px 20px 20px;
+  padding: 14px;
+  font-size: 16px;
+  line-height: 1.6;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  font-family: inherit;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-y: auto;
+  outline: none;
+}
+
+.drawer-editor:focus {
+  border-color: var(--text-faint);
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.drawer-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-faint);
+}
+
+.drawer-editor a {
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.drawer-editor ul {
+  list-style: disc;
+  padding-left: 24px;
+  margin: 4px 0;
+}
+
+.drawer-editor ol {
+  list-style: decimal;
+  padding-left: 24px;
+  margin: 4px 0;
+}
+
+.drawer-editor li {
+  margin: 2px 0;
+}
+
+/* Settings modal (list management: add / delete) */
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 420px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+
+.modal-header h2 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.settings-list-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--divider);
+  border-radius: 8px;
+}
+
+.settings-list-row.dragging {
+  opacity: 0.4;
+}
+
+.settings-list-row.drag-over {
+  background: var(--hover);
+}
+
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-faint);
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.settings-list-name {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.settings-sync-btn,
+.settings-visibility-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--input-border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.settings-sync-btn:hover,
+.settings-visibility-btn:hover {
+  background: var(--hover);
+}
+
+.settings-delete-list-btn {
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--danger-border);
+  background: var(--surface);
+  color: var(--danger-strong);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.settings-delete-list-btn:hover {
+  background: var(--danger-soft-bg);
+}
+
+.settings-add-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+#settingsNewListName,
+#linkUrlInput {
+  flex: 1;
+  font-size: 15px;
+  padding: 8px 16px;
+  border: 1px solid var(--input-border);
+  border-radius: 999px;
+}
+
+.settings-add-form button {
+  font-size: 15px;
+  padding: 8px 18px;
+  border: 1px solid transparent; /* match the input's 1px border height */
+  border-radius: 999px;
+  background: var(--primary-bg);
+  color: var(--primary-fg);
+  cursor: pointer;
+}
+
+.settings-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 24px 0 16px;
+}
+
+.settings-section-title {
+  font-size: 15px;
+  margin: 0 0 6px;
+  color: var(--text);
+}
+
+.settings-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 6px 0 0;
+}
+
+.settings-sync-config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+#syncRelayUrlInput,
+#syncApiKeyInput {
+  font-size: 15px;
+  padding: 8px 16px;
+  border: 1px solid var(--input-border);
+  border-radius: 999px;
+}
+
+.settings-sync-config-form button {
+  align-self: flex-start;
+  font-size: 15px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--primary-bg);
+  color: var(--primary-fg);
+  cursor: pointer;
+}
+
+/* Themed confirm/alert dialog (replaces native confirm()/alert()) */
+.confirm-modal {
+  width: 360px;
+  /* Must outrank other .modal instances (e.g. settingsModal) since it can
+     be triggered while one is already open (delete-list, alerts from the
+     cloud sync form) — same z-index as .modal would fall back to DOM
+     order, which put it underneath. */
+  z-index: 26;
+}
+
+.confirm-message {
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.confirm-ok-btn {
+  font-size: 15px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 999px;
+  background: var(--primary-bg);
+  color: var(--primary-fg);
+  cursor: pointer;
+}
+
+.confirm-ok-btn:hover {
+  background: var(--primary-bg-hover);
+}
+
+.confirm-ok-btn.danger-btn {
+  background: #dc2626;
+}
+
+.confirm-ok-btn.danger-btn:hover {
+  background: #b91c1c;
+}
+
+/* ---------- Mobile (≤900px): single-list view ---------- */
+
+.list-switcher {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  header {
+    grid-template-columns: 1fr auto;
+    padding: 10px 16px;
+  }
+  header h1 {
+    grid-column: 1;
+    font-size: 20px;
+  }
+  .nav-clock {
+    display: none;
+  }
+  .header-actions {
+    grid-column: 2;
+  }
+
+  .lists-container {
+    display: block;
+    padding: 16px 0 calc(16px + 88px);
+    overflow: hidden;
+    touch-action: pan-y;
+  }
+
+  .carousel-track {
+    display: flex;
+    align-items: flex-start;
+    will-change: transform;
+  }
+
+  .list-switcher {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg);
+    border-top: 1px solid var(--divider);
+    -webkit-overflow-scrolling: touch;
+  }
+  .list-switcher-pill {
+    flex-shrink: 0;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--input-border);
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .list-switcher-pill.active {
+    background: var(--primary-bg);
+    color: var(--primary-fg);
+    border-color: var(--primary-bg);
+  }
+
+  .mobile-list-panel {
+    flex: 0 0 100%;
+    width: 100%;
+    padding: 0 16px;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .mobile-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .mobile-add-form {
+    gap: 8px;
+  }
+  .mobile-add-form .add-item-text {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .mobile-items {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mobile-item-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 2px;
+    border-bottom: 1px solid var(--divider);
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+  }
+
+  .mobile-item-input {
+    flex: 1;
+    min-width: 0;
+    font-size: 16px;
+    border: none;
+    background: transparent;
+    padding: 6px 4px;
+    border-radius: 6px;
+    font-family: inherit;
+  }
+  .mobile-item-input:focus {
+    background: var(--hover-soft);
+    outline: 1px solid var(--input-border);
+  }
+
+  .mobile-status-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .mobile-status-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Visual priority dot stays small (14px), but the button is a full 32px tap
+     target with the colored dot drawn by an inner <span class="dot">. */
+  .mobile-priority-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mobile-priority-btn .dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+  }
+  .mobile-priority-btn.priority-critical .dot { background: #fee2e2; }
+  .mobile-priority-btn.priority-high .dot     { background: #ffedd5; }
+  .mobile-priority-btn.priority-normal .dot   { background: #e2e8f0; }
+  .mobile-priority-btn.priority-low .dot      { background: #ecfdf5; }
+
+  [data-theme="dark"] .mobile-priority-btn.priority-critical .dot { background: #fca5a5; }
+  [data-theme="dark"] .mobile-priority-btn.priority-high .dot     { background: #fdba74; }
+  [data-theme="dark"] .mobile-priority-btn.priority-normal .dot   { background: #cbd5e1; }
+  [data-theme="dark"] .mobile-priority-btn.priority-low .dot      { background: #6ee7b7; }
+
+  /* Bigger dropdown picker targets on touch */
+  .dropdown-menu {
+    padding: 10px;
+    gap: 8px;
+  }
+  .dropdown-option {
+    font-size: 15px;
+    padding: 10px 16px;
+  }
+
+  /* Full-screen details drawer with a back arrow */
+  .drawer {
+    width: 100vw;
+    max-width: 100vw;
+    border-left: none;
+  }
+  #drawerCloseBtn {
+    font-size: 0;
+    padding: 8px 12px;
+  }
+  #drawerCloseBtn::before {
+    content: "←";
+    font-size: 20px;
+    line-height: 1;
+  }
+
+  /* Full-screen settings sheet */
+  #settingsModal {
+    top: 0;
+    left: 0;
+    transform: none;
+    width: 100vw;
+    max-width: 100vw;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+}
